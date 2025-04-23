@@ -6,7 +6,7 @@ const eventSchema = new mongoose.Schema({
         required: true,
     },
     eventType: {
-        type: String,
+        type: [String],
         required: true,
     },
     eventDescription: {
@@ -14,7 +14,7 @@ const eventSchema = new mongoose.Schema({
     },
     eventImage: {
         type: String,
-        required: false, 
+        required: false,
     },
     startDate: {
         type: Date,
@@ -28,25 +28,28 @@ const eventSchema = new mongoose.Schema({
         type: String,
         default: null, // Nullable field
     },
+    status: {
+        type: String,
+        enum: ["Draft", "PendingApproval", "Approved", "InProgress", "Completed", "Cancelled"],
+        default: "Draft",
+    },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
     },
-    assignees: {
-        manager: {
+    quotationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Quotation',
+        required: false,
+    },
+    assignees: [
+        {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'Assignees',
             required: false,
         },
-        teamMembers: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-                required: false,
-            },
-        ],
-    },
+    ],
     tasks: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -54,16 +57,6 @@ const eventSchema = new mongoose.Schema({
             required: false,
         },
     ],
-    comments:{
-       type: mongoose.Schema.Types.ObjectId,
-       ref: 'Comment',
-       required: false
-    },
-    status: {
-        type: String,
-        enum: ["Draft", "PendingApproval", "Approved", "InProgress", "Completed", "Cancelled"],
-        default: "Draft",
-    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
