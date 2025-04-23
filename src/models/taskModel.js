@@ -1,15 +1,6 @@
 const mongoose = require('mongoose');
 
 const taskSchema = new mongoose.Schema({
-    taskId: {
-        type: mongoose.Schema.Types.ObjectId,
-        auto: true, 
-    },
-    eventId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Event', 
-        required: true,
-    },
     taskName: {
         type: String,
         required: true,
@@ -34,24 +25,80 @@ const taskSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    assigneeId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', 
-        required: true,
-    },
+    assignees: [
+        {
+            assigneeId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Assignees',
+                required: true,
+            },
+            role: {
+                type: String,
+                required: true,
+                enum: ["manager", "team-member"],
+            },
+        }
+    ],
+    event: [
+        {
+            eventId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Event',
+                required: true,
+            }
+        }
+    ],
     subTasks: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Task', 
+            ref: 'Task',
         }
     ],
-    progress: {
-        type: Number,
-        default: 0,
-    },
+    comments: [
+        {
+            commentId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Comment',
+                required: true,
+            },
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true,
+            },
+            attachments: {
+                type: [String],
+            },
+            isChangeRequest: {
+                type: Boolean,
+                default: false,
+            },
+            timestamp: {
+                type: Date,
+                default: Date.now,
+            },
+        }
+    ],
+    feedback: [
+        {
+            feedbackId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Feedback',
+                required: true,
+            },
+            isChangeRequest: {
+                type: Boolean,
+                default: false,
+            },
+            timestamp: {
+                type: Date,
+                default: Date.now,
+            },
+        }
+    ],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', 
+        ref: 'User',
         required: true,
     }
 }, { timestamps: true });

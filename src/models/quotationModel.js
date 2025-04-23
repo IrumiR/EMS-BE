@@ -1,10 +1,6 @@
 const mongoose = require('mongoose');
 
 const quotationSchema = new mongoose.Schema({
-    quotationId: {
-        type: mongoose.Schema.Types.ObjectId,
-        auto: true, 
-    },
     eventId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Event',
@@ -12,15 +8,11 @@ const quotationSchema = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
-    quotationDate: {
-        type: Date,
+        ref: 'Client',
         required: true,
     },
     items: {
-        type: [mongoose.Schema.Types.Mixed], // Array of JSON objects representing line items
+        type: [String], 
         required: true,
     },
     subtotal: {
@@ -28,18 +20,8 @@ const quotationSchema = new mongoose.Schema({
         required: true,
         min: 0,
     },
-    discount: {
-        type: Number,
-        default: 0,
-        min: 0,
-    },
-    total: {
-        type: Number,
-        required: true,
-        min: 0,
-    },
-    termsAndConditions: {
-        type: String,
+    conditions: {
+        type: [String],
         required: true,
     },
     status: {

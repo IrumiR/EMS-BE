@@ -30,8 +30,8 @@ const eventSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["Draft", "PendingApproval", "Approved", "InProgress", "Completed", "Cancelled"],
-        default: "Draft",
+        enum: ["Pending Approval", "Approved", "InProgress", "Hold", "Completed", "Cancelled"],
+        default: "Pending Approval",
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -57,10 +57,26 @@ const eventSchema = new mongoose.Schema({
     ],
     tasks: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Task',
-            required: false,
-        },
+            taskId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Task',
+                required: false,
+            },
+            taskName: {
+                type: String,
+                required: true,
+            },
+            assigneeId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Assignees',
+                required: false,
+            },
+            commentId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Comment',
+                required: false,
+            },
+        }
     ],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
