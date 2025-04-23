@@ -35,12 +35,17 @@ const eventSchema = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Client',
         required: true,
     },
     quotationId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Quotation',
+        required: false,
+    },
+    feedbackId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Feedback',
         required: false,
     },
     assignees: [

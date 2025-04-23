@@ -1,18 +1,9 @@
 const mongoose = require('mongoose');
 
 const commentSchema = new mongoose.Schema({
-    commentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        auto: true, 
-    },
     taskId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Task',
-        required: true,
-    },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', 
         required: true,
     },
     content: {
@@ -27,11 +18,11 @@ const commentSchema = new mongoose.Schema({
         type: [String], 
         default: [],
     },
-    parentCommentId: {
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Comment', // Self-referencing for comment threads
-        default: null,
-    }
-});
+        ref: 'User',
+        required: true,
+    },
+}, { timestamps: true  });
 
 module.exports = mongoose.Model('Comment', commentSchema);

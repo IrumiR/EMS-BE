@@ -1,18 +1,19 @@
 const mongoose = require('mongoose');
 
-const reportSchema = new mongoose.Schema({
-    reportName: {
+const feedbackSchema = new mongoose.Schema({
+    feedbackDescription: {
         type: String,
         required: true,
     },
-    type: {
-        type: String,
+    rating: {
+        type: Number,
         required: true,
+        min: 1,
+        max: 5,
     },
-   eventId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Event',
-        required: true,
+    isChangeRequest: {
+        type: Boolean,
+        default: false,
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -21,4 +22,4 @@ const reportSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Report', reportSchema);
+module.exports = mongoose.model('Feedback', feedbackSchema);
