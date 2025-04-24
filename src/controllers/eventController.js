@@ -30,13 +30,37 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
     try {
-        const events = await Event.find(); 
-        res.status(200).json({ message: "All events retrieved successfully", events });
+        const { page = 1, limit = 10, search = "" } = req.query;
+
+        const query = {
+            $or: [
+                { eventName: { $regex: search, $options: "i" } },
+                { eventDescription: { $regex: search, $options: "i" } }
+            ]
+        };
+
+        const events = await Event.find(query)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        const totalCount = await Event.countDocuments(query);
+
+        res.status(200).json({
+            message: "Events retrieved successfully",
+            events,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / limit),
+            }
+        });
     } catch (error) {
         console.error("Error fetching events:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
 
 
 const getEventById = async (req, res) => {

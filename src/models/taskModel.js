@@ -30,7 +30,7 @@ const taskSchema = new mongoose.Schema({
             assigneeId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Assignees',
-                required: true,
+                required: false,
             },
             role: {
                 type: String,
@@ -39,15 +39,11 @@ const taskSchema = new mongoose.Schema({
             },
         }
     ],
-    event: [
-        {
-            eventId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Event',
-                required: true,
-            }
-        }
-    ],
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
+        required: true,
+    },
     subTasks: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -59,12 +55,12 @@ const taskSchema = new mongoose.Schema({
             commentId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Comment',
-                required: true,
+                required: false,
             },
             userId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User',
-                required: true,
+                required: false,
             },
             attachments: {
                 type: [String],
@@ -84,7 +80,7 @@ const taskSchema = new mongoose.Schema({
             feedbackId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Feedback',
-                required: true,
+                required: false,
             },
             isChangeRequest: {
                 type: Boolean,
