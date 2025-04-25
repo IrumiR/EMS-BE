@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
 
 dbConnect();
 
@@ -25,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 //Start the server
 const PORT = process.env.PORT || 7002;

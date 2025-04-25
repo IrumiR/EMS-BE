@@ -4,7 +4,6 @@ const inventoryItemSchema = new mongoose.Schema({
     itemName: {
         type: String,
         required: true,
-        trim: true,
     },
     category: {
         type: [String],
@@ -37,7 +36,7 @@ const inventoryItemSchema = new mongoose.Schema({
         default: true,
     },
     availability: {
-        type: boolean,
+        type: Boolean,
         default: true,
     },
     assignedEvent: [

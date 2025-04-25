@@ -78,6 +78,13 @@ const eventSchema = new mongoose.Schema({
             },
         }
     ],
+    inventoryItems: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'InventoryItem',
+            required: false,
+        },
+    ],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
