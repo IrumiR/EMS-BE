@@ -5,11 +5,20 @@ const inventoryItemSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    itemDescription: {
+        type: String,
+        required: false,
+    },
     category: {
         type: [String],
         required: true,
     },
-    quantity: {
+    totalQuantity: {
+        type: Number,
+        required: true,
+        min: 0, // Ensures non-negative quantity
+    },
+    remainingQuantity: {
         type: Number,
         required: true,
         min: 0, // Ensures non-negative quantity
@@ -32,10 +41,6 @@ const inventoryItemSchema = new mongoose.Schema({
         required: false,
     },
     isExternal: {
-        type: Boolean,
-        default: true,
-    },
-    availability: {
         type: Boolean,
         default: true,
     },

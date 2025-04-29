@@ -2,18 +2,19 @@ const InventoryItem = require('../models/inventoryItemModel');
 
 const createInventoryItem = async (req, res) => {
     try {
-        const { itemName, category, quantity, price, condition, variations, images, isExternal, availability, assignedEvent, createdBy } = req.body;
+        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, images, isExternal, assignedEvent, createdBy } = req.body;
 
         const newInventoryItem = new InventoryItem({
             itemName,
+            itemDescription,
             category,
-            quantity,
+            totalQuantity,
+            remainingQuantity: totalQuantity,
             price,
             condition,
             variations,
             images,
             isExternal,
-            availability,
             assignedEvent,
             createdBy
         });
@@ -58,6 +59,32 @@ const getAllInventoryItems = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+const getAllDropdown = async (req, res) => {
+    console.log("Fetching all inventory items for dropdown");
+    try {
+        // Query items and select only the required fields
+        const dropdownItems = await InventoryItem.find(
+            { remainingQuantity: { $gt: 0 } }, // Only include items with remaining quantity
+            'itemName _id remainingQuantity' // Select only the required fields
+        ).sort({ itemName: 1 }); // Sort alphabetically by name
+        
+        const formattedItems = dropdownItems.map(item => ({
+            itemId: item._id,
+            itemName: item.itemName,
+            remainingQuantity: item.remainingQuantity
+        }));
+
+        res.status(200).json({ 
+            message: "Dropdown items retrieved successfully", 
+            items: formattedItems 
+        });
+    } catch (error) {
+        console.error("Error fetching dropdown items:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
 
 const getInventoryItemById = async (req, res) => {
     try {
@@ -103,4 +130,7 @@ const deleteInventoryItem = async (req, res) => {
     }
 };
 
-module.exports = { createInventoryItem, getAllInventoryItems, getInventoryItemById, updateInventoryItem, deleteInventoryItem };
+
+
+
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById, updateInventoryItem, deleteInventoryItem };
