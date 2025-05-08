@@ -4,12 +4,11 @@ const jwt = require('jsonwebtoken');
 
 const register = async (req, res) => {
     try {
-        const { userName, nic, email, password, role, address, contactNumber, profileImage, isActive } = req.body;
+        const { userName, email, password, role, address, contactNumber, profileImage, isActive } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
             userName,
-            nic,
             email,
             password: hashedPassword,
             role,
@@ -49,6 +48,7 @@ const login = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
+
 
 module.exports = {
     register,

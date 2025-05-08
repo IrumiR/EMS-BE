@@ -2,6 +2,7 @@ const express = require('express');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
+const { getAllUsers } = require('../controllers/userController');
 
 //only admin can access this router
 router.get('/admin', verifyToken, authorizeRoles("admin"), (req, res) => {
@@ -23,6 +24,9 @@ router.get('/team-member', verifyToken, authorizeRoles("admin", "manager", "team
 router.get('/client', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), (req, res) => {
     res.json({ message: "Welcome Client!" });
 });
+
+
+router.get('/all', verifyToken, authorizeRoles("admin", "manager"), getAllUsers);
 
 
 module.exports = router;
