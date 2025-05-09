@@ -91,5 +91,41 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const getClientDropdown = async (req, res) => {
+    try {
+        const clients = await User.find({ role: "client" }).select("userName");
+        const formattedClients = clients.map(client => ({
+            userName: client.userName,
+            userId: client._id.toString(),
+        }));
 
-module.exports = { getAllUsers, getUserById, updateUser, deleteUser };
+        res.status(200).json({
+            message: "Clients retrieved successfully",
+            clients: formattedClients,
+        });
+    } catch (error) {
+        console.error("Error fetching dropdown clients:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+const getAssigneesDropdown = async (req, res) => {
+    try {
+        const assignees = await User.find({ role: "team-member" }).select("userName");
+        const formattedAssignees = assignees.map(assignee => ({
+            userName: assignee.userName,
+            userId: assignee._id.toString(),
+        }));
+
+        res.status(200).json({
+            message: "Assignees retrieved successfully",
+            assignees: formattedAssignees,
+        });
+    } catch (error) {
+        console.error("Error fetching dropdown assignees:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
+module.exports = { getAllUsers, getUserById, updateUser, deleteUser, getClientDropdown, getAssigneesDropdown };
