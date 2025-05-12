@@ -2,7 +2,7 @@ const Event = require("../models/eventModel");
 
 const createEvent = async (req, res) => {
     try {
-        const { eventId, eventName, eventType, eventDescription, eventImage, startDate, endDate, proposedLocation, clientId, assignees,  tasks, status, createdBy } = req.body;
+        const { eventId, eventName, eventType, eventDescription, eventImage, startDate, endDate, proposedLocation, clientId, assignees,  tasks, status, inventoryItems,createdBy } = req.body;
 
         const newEvent = new Event({
             eventId,
@@ -17,6 +17,7 @@ const createEvent = async (req, res) => {
             assignees,
             tasks,
             status,
+            inventoryItems,
             createdBy
         });
 
