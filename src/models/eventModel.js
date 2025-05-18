@@ -24,6 +24,14 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
+    startTime: {
+        type: String,
+        required: false,
+    },
+    endTime: {
+        type: String,
+        required: false,
+    },
     proposedLocation: {
         type: String,
         default: null, // Nullable field

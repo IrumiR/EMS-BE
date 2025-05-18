@@ -1,8 +1,9 @@
 const Event = require("../models/eventModel");
+const mongoose = require("mongoose");
 
 const createEvent = async (req, res) => {
     try {
-        const { eventId, eventName, eventType, eventDescription, eventImage, startDate, endDate, proposedLocation, clientId, assignees,  tasks, status, inventoryItems,createdBy } = req.body;
+        const { eventId, eventName, eventType, eventDescription, eventImage, startDate, endDate, startTime, endTime, proposedLocation, clientId, assignees,  tasks, status, inventoryItems,createdBy } = req.body;
 
         const newEvent = new Event({
             eventId,
@@ -12,6 +13,8 @@ const createEvent = async (req, res) => {
             eventImage,
             startDate,
             endDate,
+            startTime,
+            endTime,
             proposedLocation,
             clientId,
             assignees,
@@ -109,10 +112,34 @@ const deleteEvent = async (req, res) => {
     }
 };
 
+const updateStatus = async (req, res) => {
+    try {
+        // Changed from _id to id to match your route parameter
+        const id = req.params.id;
+        const { status } = req.body;
+        
+        console.log("Received ID:", id); // Add logging to see what ID is received
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid event ID format" });
+        }
+        
+        const updatedEvent = await Event.findByIdAndUpdate(id, { status }, { new: true });
+        if (!updatedEvent) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+        res.status(200).json({ message: "Event status updated successfully" });
+    } catch (error) {
+        console.error("Error updating event status:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+};
+
 module.exports = {
     createEvent,
     getAllEvents,
     getEventById,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    updateStatus
 };
