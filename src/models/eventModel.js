@@ -43,7 +43,7 @@ const eventSchema = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Client',
+        ref: 'User',
         required: true,
     },
     quotationId: {

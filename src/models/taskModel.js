@@ -18,12 +18,13 @@ const taskSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["NotStarted", "InProgress", "Completed", "Delayed", "Cancelled"],
-        default: "NotStarted",
+        enum: ["To Do", "InProgress", "Completed", "Over Due", "Cancelled"],
+        default: "To Do",
     },
-    budget: {
-        type: Number,
-        required: true,
+    priority: {
+        type: String,
+        enum: ["Low", "Medium", "High"],
+        default: "Low",
     },
     assignees: [
         {
@@ -39,17 +40,22 @@ const taskSchema = new mongoose.Schema({
             },
         }
     ],
+    inventoryItems: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'InventoryItem',
+            required: false,
+        },
+    ],
     eventId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Event',
         required: true,
     },
-    subTasks: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Task',
-        }
-    ],
+    subTasks: {
+        type: [String],
+        required: false,
+    },
     comments: [
         {
             commentId: {

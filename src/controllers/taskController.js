@@ -9,8 +9,9 @@ const createTask = async (req, res) => {
             startDate,
             endDate,
             status,
-            budget,
+            priority,
             assignees,
+            inventoryItems,
             eventId,
             subTasks,
             comments,
@@ -25,7 +26,8 @@ const createTask = async (req, res) => {
             startDate,
             endDate,
             status,
-            budget,
+            priority,
+            inventoryItems,
             assignees,
             eventId,
             subTasks,
@@ -68,13 +70,38 @@ const createTask = async (req, res) => {
 
 const getAllTasks = async (req, res) => {
     try {
-        const tasks = await Task.find();
-        res.status(200).json({ message: "All tasks retrieved successfully", tasks });
+        const { page = 1, limit = 10, search = "" } = req.query;
+
+        const query = {
+            $or: [
+                { taskName: { $regex: search, $options: "i" } },
+                { taskDescription: { $regex: search, $options: "i" } }
+            ]
+        };
+
+        const tasks = await Task.find(query)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('eventId', 'eventName')
+
+        const totalCount = await Task.countDocuments(query);
+
+        res.status(200).json({
+            message: "Tasks retrieved successfully",
+            tasks,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / limit)
+            }
+        });
     } catch (error) {
         console.error("Error fetching tasks:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
-}
+};
+
 
 const getTaskById = async (req, res) => {
     try {
@@ -84,7 +111,8 @@ const getTaskById = async (req, res) => {
             return res.status(400).json({ message: "Invalid task ID format" });
         }
 
-        const task = await Task.findById(id);
+        const task = await Task.findById(id)
+            .populate('eventId', 'eventName')
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -99,27 +127,66 @@ const getTaskById = async (req, res) => {
 
 const updateTask = async (req, res) => {
     try {
+        // Step 1: Update the task
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
         if (!updatedTask) {
             return res.status(404).json({ message: "Task not found" });
         }
-        res.status(200).json({ message: "Task updated successfully", task: updatedTask });
+
+        // Step 2: Update the related event's task reference
+        await Event.updateOne(
+            { "tasks.taskId": updatedTask._id },
+            {
+                $set: {
+                    "tasks.$.taskName": updatedTask.taskName,
+                    "tasks.$.assigneeId": updatedTask.assignees?.[0]?.assigneeId || null,
+                    "tasks.$.commentId": updatedTask.comments?.[0]?.commentId || null
+                }
+            }
+        );
+
+        res.status(200).json({
+            message: "Task updated successfully",
+            task: updatedTask
+        });
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong" });
+        console.error("Error updating task:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
 
+
 const deleteTask = async (req, res) => {
     try {
-        const deletedTask = await Task.findByIdAndDelete(req.params.id);
-        if (!deletedTask) {
+        // Step 1: Find the task to get its eventId
+        const taskToDelete = await Task.findById(req.params.id);
+
+        if (!taskToDelete) {
             return res.status(404).json({ message: "Task not found" });
         }
+
+        // Step 2: Delete the task
+        await Task.findByIdAndDelete(req.params.id);
+
+        // Step 3: Remove the task reference from the associated event
+        await Event.findByIdAndUpdate(
+            taskToDelete.eventId,
+            {
+                $pull: {
+                    tasks: { taskId: taskToDelete._id }
+                }
+            },
+            { new: true }
+        );
+
         res.status(200).json({ message: "Task deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong" });
+        console.error("Error deleting task:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
     }
-}
+};
+
 
 module.exports = {
     createTask,
