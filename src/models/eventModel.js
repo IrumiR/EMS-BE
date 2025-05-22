@@ -56,13 +56,6 @@ const eventSchema = new mongoose.Schema({
         ref: 'Feedback',
         required: false,
     },
-    assignees: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Assignees',
-            required: false,
-        },
-    ],
     tasks: [
         {
             taskId: {
@@ -73,11 +66,6 @@ const eventSchema = new mongoose.Schema({
             taskName: {
                 type: String,
                 required: true,
-            },
-            assigneeId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Assignees',
-                required: false,
             },
             commentId: {
                 type: mongoose.Schema.Types.ObjectId,

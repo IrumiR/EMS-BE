@@ -53,10 +53,6 @@ const getAllEvents = async (req, res) => {
             .populate('clientId','userName')
             .populate('inventoryItems', 'itemName')
             .populate('createdBy', 'userName')
-            .populate({
-                path: 'assignees',
-                select: 'assigneeName role'
-            })
 
         const totalCount = await Event.countDocuments(query);
 
@@ -89,10 +85,6 @@ const getEventById = async (req, res) => {
             .populate('clientId','userName')
             .populate('inventoryItems', 'itemName')
             .populate('createdBy', 'userName')
-            .populate({
-                path: 'assignees',
-                select: 'assigneeName role'
-            })
 
         if (!event) {
             return res.status(404).json({ message: "Event not found" });

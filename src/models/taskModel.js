@@ -28,16 +28,9 @@ const taskSchema = new mongoose.Schema({
     },
     assignees: [
         {
-            assigneeId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Assignees',
-                required: false,
-            },
-            role: {
-                type: String,
-                required: true,
-                enum: ["manager", "team-member"],
-            },
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false,
         }
     ],
     inventoryItems: [

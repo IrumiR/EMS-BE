@@ -1,5 +1,6 @@
 const Task = require('../models/taskModel');
 const Event = require('../models/eventModel');
+const User = require('../models/userModel');
 
 const createTask = async (req, res) => {
     try {
@@ -83,6 +84,8 @@ const getAllTasks = async (req, res) => {
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate('eventId', 'eventName')
+            .populate('assignees', 'userName')
+            .populate('createdBy', 'userName')
 
         const totalCount = await Task.countDocuments(query);
 
@@ -113,6 +116,8 @@ const getTaskById = async (req, res) => {
 
         const task = await Task.findById(id)
             .populate('eventId', 'eventName')
+            .populate('assignees', 'userName')
+            .populate('createdBy', 'userName')
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -124,6 +129,45 @@ const getTaskById = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
+const getAllTasksByEventId = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { page = 1, limit = 10, search = "" } = req.query;
+
+        const query = {
+            eventId,
+            $or: [
+                { taskName: { $regex: search, $options: "i" } },
+                { taskDescription: { $regex: search, $options: "i" } }
+            ]
+        };
+
+        const tasks = await Task.find(query)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('assignees', 'userName')
+            .populate('createdBy', 'userName')
+            .populate('eventId', 'eventName');
+
+        const totalCount = await Task.countDocuments(query);
+
+        res.status(200).json({
+            message: "Tasks retrieved successfully",
+            tasks,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching tasks by event ID:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+};
+
 
 const updateTask = async (req, res) => {
     try {
@@ -192,6 +236,7 @@ module.exports = {
     createTask,
     getAllTasks,
     getTaskById,
+    getAllTasksByEventId,
     updateTask,
     deleteTask
 };
