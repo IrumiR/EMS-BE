@@ -200,6 +200,50 @@ const updateTask = async (req, res) => {
     }
 };
 
+const updateStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ message: "Invalid task ID format" });
+        }
+
+        const updatedTask = await Task.findByIdAndUpdate(id, { status }, { new: true });
+
+        if (!updatedTask) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        res.status(200).json({ message: "Task status updated successfully", task: updatedTask });
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+};
+
+const updatePriority = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { priority } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ message: "Invalid task ID format" });
+        }
+
+        const updatedTask = await Task.findByIdAndUpdate(id, { priority }, { new: true });
+
+        if (!updatedTask) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        res.status(200).json({ message: "Task priority updated successfully", task: updatedTask });
+    } catch (error) {
+        console.error("Error updating task priority:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+};
+
 
 const deleteTask = async (req, res) => {
     try {
@@ -238,5 +282,7 @@ module.exports = {
     getTaskById,
     getAllTasksByEventId,
     updateTask,
+    updateStatus,
+    updatePriority,
     deleteTask
 };

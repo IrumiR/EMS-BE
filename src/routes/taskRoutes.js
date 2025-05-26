@@ -1,5 +1,5 @@
 const express = require("express");
-const { createTask, getAllTasks, getTaskById, getAllTasksByEventId, updateTask, deleteTask } = require("../controllers/taskController");
+const { createTask, getAllTasks, getTaskById, getAllTasksByEventId, updateTask, updateStatus, updatePriority, deleteTask } = require("../controllers/taskController");
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
@@ -8,6 +8,8 @@ router.post("/create", verifyToken, authorizeRoles("admin", "manager", "team-mem
 router.get("/all", verifyToken, authorizeRoles("admin", "manager"), getAllTasks);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), getTaskById);
 router.get("/all/:eventId", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllTasksByEventId);
+router.put("/status/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateStatus);
+router.put("/priority/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updatePriority);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateTask);
 router.delete("/:id", verifyToken, authorizeRoles("admin", "manager"), deleteTask);
 
