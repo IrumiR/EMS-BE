@@ -45,35 +45,26 @@ const taskSchema = new mongoose.Schema({
         ref: 'Event',
         required: true,
     },
-    subTasks: {
-        type: [String],
-        required: false,
-    },
-    comments: [
+    subTasks: [
         {
-            commentId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Comment',
-                required: false,
+            subTaskName: {
+                type: String,
+                required: true,
             },
-            userId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-                required: false,
-            },
-            attachments: {
-                type: [String],
-            },
-            isChangeRequest: {
-                type: Boolean,
-                default: false,
-            },
-            timestamp: {
-                type: Date,
-                default: Date.now,
-            },
+            status: {
+                type: String,
+                enum: ["To Do", "In Progress", "Completed", "Over Due", "Cancelled"],
+                default: "To Do",
+            }
         }
     ],
+    comments: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment',
+        required: false,
+    }
+],
     feedback: [
         {
             feedbackId: {

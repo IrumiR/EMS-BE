@@ -6,23 +6,23 @@ const commentSchema = new mongoose.Schema({
         ref: 'Task',
         required: true,
     },
-    content: {
+    commentText: {
         type: String,
         required: true,
-    },
-    isChangeRequest: {
-        type: Boolean,
-        default: false,
-    },
-    attachments: {
-        type: [String], 
-        default: [],
+        trim: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
     },
-}, { timestamps: true  });
+    parentCommentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment',
+        default: null // Null means it's a root comment, otherwise it's a reply
+    }
+}, { 
+    timestamps: true  
+});
 
-module.exports = mongoose.Model('Comment', commentSchema);
+module.exports = mongoose.model('Comment', commentSchema);

@@ -7,6 +7,7 @@ const userRoutes = require('./routes/userRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 
 dbConnect();
 
@@ -27,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/comments', commentRoutes);
 
 //Start the server
 const PORT = process.env.PORT || 7002;
