@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const bcrypt = require('bcryptjs');
 
 const getAllUsers = async (req, res) => {
     try {
@@ -11,6 +12,7 @@ const getAllUsers = async (req, res) => {
         };
 
         const users = await User.find(query)
+            .select("-password")
             .skip((page - 1) * limit)
             .limit(parseInt(limit));
 
@@ -35,7 +37,7 @@ const getAllUsers = async (req, res) => {
 const getUserById = async (req, res) => {
     try {
         const userId = req.params.id;
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).select("-password");
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -54,7 +56,14 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const updatedData = req.body;
+        const updatedData = { ...req.body };
+
+        // Handle password update only if it's non-empty
+        if (updatedData.password) {
+            updatedData.password = await bcrypt.hash(updatedData.password, 10);
+        } else {
+            delete updatedData.password; // Prevent overwriting existing password with empty value
+        }
 
         const user = await User.findByIdAndUpdate(userId, updatedData, { new: true });
 

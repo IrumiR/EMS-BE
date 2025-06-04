@@ -34,7 +34,7 @@ const inventoryItemSchema = new mongoose.Schema({
     },
     variations: {
         type: [String],
-        required: true,
+        required: false,
     },
     images: {
         type: [String],
@@ -51,6 +51,24 @@ const inventoryItemSchema = new mongoose.Schema({
             required: false,
         }
     ],
+    reservations: [
+  {
+    eventId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Event',
+      required: false
+    },
+    date: {
+      type: Date,
+      required: false
+    },
+    reservedQuantity: {
+      type: Number,
+      required: false,
+      min: 1
+    }
+  }
+],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

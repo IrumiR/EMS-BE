@@ -59,6 +59,7 @@ const getAllInventoryItems = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
 const getAllDropdown = async (req, res) => {
     console.log("Fetching all inventory items for dropdown");
     try {
@@ -84,8 +85,6 @@ const getAllDropdown = async (req, res) => {
     }
 };
 
-
-
 const getInventoryItemById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -94,7 +93,8 @@ const getInventoryItemById = async (req, res) => {
             return res.status(400).json({ message: "Invalid inventory item ID format" });
         }
 
-        const inventoryItem = await InventoryItem.findById(id);
+        const inventoryItem = await InventoryItem.findById(id)
+        
 
         if (!inventoryItem) {
             return res.status(404).json({ message: "Inventory item not found" });
@@ -130,7 +130,51 @@ const deleteInventoryItem = async (req, res) => {
     }
 };
 
+const createReservation = async (req, res) => {
+  try {
+    const { itemId, eventId, date, reservedQuantity } = req.body;
+
+    if (!itemId || !eventId || !date || !reservedQuantity) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const item = await InventoryItem.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Inventory item not found" });
+    }
+
+    // Find total reserved quantity for the selected date
+    const existingReservations = item.reservations?.filter(r =>
+      new Date(r.date).toDateString() === new Date(date).toDateString()
+    ) || [];
+
+    const totalReservedForDate = existingReservations.reduce(
+      (sum, r) => sum + r.reservedQuantity,
+      0
+    );
+
+    const availableQuantity = item.totalQuantity - totalReservedForDate;
+
+    if (reservedQuantity > availableQuantity) {
+      return res.status(400).json({ message: `Only ${availableQuantity} item(s) available for the selected date` });
+    }
+
+    // Add new reservation
+    item.reservations.push({
+      eventId,
+      date,
+      reservedQuantity
+    });
+
+    await item.save();
+
+    res.status(201).json({ message: "Reservation created successfully", item });
+  } catch (error) {
+    console.error("Error creating reservation:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
 
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById, updateInventoryItem, deleteInventoryItem };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById, updateInventoryItem, deleteInventoryItem, createReservation };

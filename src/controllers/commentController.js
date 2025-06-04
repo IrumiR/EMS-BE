@@ -41,7 +41,7 @@ const getCommentsByTaskId = async (req, res) => {
 
         const comments = await Comment.find({ taskId, parentCommentId: null })
             .populate('createdBy', 'userName')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: 1 });
 
         const commentIds = comments.map(c => c._id);
         const replies = await Comment.find({ parentCommentId: { $in: commentIds } })
