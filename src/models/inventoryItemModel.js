@@ -52,23 +52,23 @@ const inventoryItemSchema = new mongoose.Schema({
         }
     ],
     reservations: [
-  {
-    eventId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Event',
-      required: false
-    },
-    date: {
-      type: Date,
-      required: false
-    },
-    reservedQuantity: {
-      type: Number,
-      required: false,
-      min: 1
-    }
-  }
-],
+        {
+            eventId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Event',
+                required: false
+            },
+            date: {
+                type: Date,
+                required: false
+            },
+            reservedQuantity: {
+                type: Number,
+                required: false,
+                min: 1
+            }
+        }
+    ],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
