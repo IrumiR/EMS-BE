@@ -78,7 +78,6 @@ const getAllEvents = async (req, res) => {
     }
 };
 
-
 const getEventById = async (req, res) => {
     try {
         const { id } = req.params;

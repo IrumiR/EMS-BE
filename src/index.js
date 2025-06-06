@@ -8,6 +8,7 @@ const eventRoutes = require('./routes/eventRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
 
 dbConnect();
 
@@ -29,6 +30,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/budget', budgetRoutes);
 
 //Start the server
 const PORT = process.env.PORT || 7002;
