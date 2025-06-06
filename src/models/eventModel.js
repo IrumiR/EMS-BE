@@ -81,6 +81,10 @@ const eventSchema = new mongoose.Schema({
             required: false,
         },
     ],
+    progress: {
+        type: Number,
+        default: 0,
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

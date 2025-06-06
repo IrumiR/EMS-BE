@@ -5,8 +5,8 @@ const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
 
 router.post("/create", verifyToken, authorizeRoles("admin", "manager"), createEvent);
-router.get("/all", verifyToken, authorizeRoles("admin", "manager"), getAllEvents);
-router.get("/:id", verifyToken, authorizeRoles("admin", "manager"), getEventById);
+router.get("/all", verifyToken, authorizeRoles("admin", "manager", "client"), getAllEvents);
+router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "client"), getEventById);
 router.get("/dropdown/events", verifyToken, authorizeRoles("admin", "manager"), getEventsDropdown);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager"), updateEvent);
 router.put("/status/:id", verifyToken, authorizeRoles("admin", "manager"), updateStatus);

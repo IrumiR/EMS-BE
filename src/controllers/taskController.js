@@ -55,6 +55,8 @@ const createTask = async (req, res) => {
             { new: true, useFindAndModify: false }
         );
 
+        await calculateAndUpdateEventProgress(newTask.eventId);
+
         res.status(201).json({
             message: "Task created successfully and added to the event",
             task: savedTask
@@ -190,6 +192,8 @@ const updateTask = async (req, res) => {
             }
         );
 
+        await calculateAndUpdateEventProgress(updatedTask.eventId);
+
         res.status(200).json({
             message: "Task updated successfully",
             task: updatedTask
@@ -214,6 +218,8 @@ const updateStatus = async (req, res) => {
         if (!updatedTask) {
             return res.status(404).json({ message: "Task not found" });
         }
+
+         await calculateAndUpdateEventProgress(updatedTask.eventId);
 
         res.status(200).json({ message: "Task status updated successfully", task: updatedTask });
     } catch (error) {
@@ -275,6 +281,36 @@ const deleteTask = async (req, res) => {
     }
 };
 
+const calculateAndUpdateEventProgress = async (eventId) => {
+    try {
+        const tasks = await Task.find({ eventId });
+
+        let totalCount = 0;
+        let completedCount = 0;
+
+        tasks.forEach(task => {
+            totalCount++; // for the main task
+            if (task.status === "Completed") completedCount++;
+
+            if (Array.isArray(task.subTasks)) {
+                task.subTasks.forEach(sub => {
+                    totalCount++;
+                    if (sub.status === "Completed") completedCount++;
+                });
+            }
+        });
+
+        const progress = totalCount > 0 ? (completedCount * 100) / totalCount : 0;
+
+        await Event.findByIdAndUpdate(
+            eventId,
+            { progress },
+            { new: true }
+        );
+    } catch (error) {
+        console.error("Error calculating event progress:", error.message);
+    }
+};
 
 module.exports = {
     createTask,
@@ -284,5 +320,6 @@ module.exports = {
     updateTask,
     updateStatus,
     updatePriority,
-    deleteTask
+    deleteTask,
+    calculateAndUpdateEventProgress
 };

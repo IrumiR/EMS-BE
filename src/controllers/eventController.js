@@ -38,7 +38,7 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "" } = req.query;
+        const { page = 1, limit = 10, search = "", clientId } = req.query;
 
         const query = {
             $or: [
@@ -47,12 +47,18 @@ const getAllEvents = async (req, res) => {
             ]
         };
 
+        // Add clientId to query if provided
+        if (clientId) {
+            query.$and = query.$and || [];
+            query.$and.push({ clientId });
+        }
+
         const events = await Event.find(query)
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('clientId','userName')
+            .populate('clientId', 'userName')
             .populate('inventoryItems', 'itemName')
-            .populate('createdBy', 'userName')
+            .populate('createdBy', 'userName');
 
         const totalCount = await Event.countDocuments(query);
 
