@@ -50,7 +50,16 @@ const getAllBudgets = async (req, res) => {
 
         const totalCount = await Budget.countDocuments(query);
 
-        res.status(200).json({ message: "Budgets retrieved successfully", budgets, totalCount });
+        res.status(200).json({
+            message: "Budgets retrieved successfully",
+            budgets,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / limit)
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
@@ -123,19 +132,49 @@ const deleteBudget = async (req, res) => {
 const updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { isApproved } = req.body;
+        const { isApproved, remarks } = req.body;
 
         if (!id) {
             return res.status(400).json({ message: "Invalid budget ID" });
         }
 
-        const updatedBudget = await Budget.findByIdAndUpdate(id, { isApproved }, { new: true });
+        // Require remarks for both approval and rejection
+        if ((isApproved === true || isApproved === false) && !remarks) {
+            return res.status(400).json({ message: "Remarks are required when approving or rejecting a budget" });
+        }
+
+        let updateData;
+
+        if (isApproved === null || isApproved === undefined) {
+            updateData = {
+                isApproved: null,
+                status: "Pending",
+                remarks: ""
+            };
+        } else if (isApproved === true) {
+            updateData = {
+                isApproved: true,
+                status: "Approved",
+                remarks: remarks
+            };
+        } else if (isApproved === false) {
+            updateData = {
+                isApproved: false,
+                status: "Rejected",
+                remarks: remarks
+            };
+        }
+
+        const updatedBudget = await Budget.findByIdAndUpdate(id, updateData, { new: true });
 
         if (!updatedBudget) {
             return res.status(404).json({ message: "Budget not found" });
         }
 
-        res.status(200).json({ message: "Budget status updated successfully", budget: updatedBudget });
+        res.status(200).json({
+            message: "Budget status updated successfully",
+            budget: updatedBudget
+        });
     } catch (error) {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
