@@ -34,6 +34,62 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+const getUserReportData = async (req, res) => {
+    try {
+        const users = await User.find({}, 'userName email role contactNumber createdAt')
+            .sort({ createdAt: 1 }); 
+
+        res.status(200).json({
+            message: "User report data retrieved successfully",
+            users
+        });
+    } catch (error) {
+        console.error("Error fetching user report data:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+const getUserCountsByRole = async (req, res) => {
+    try {
+        const roleCounts = await User.aggregate([
+            {
+                $group: {
+                    _id: "$role",
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    role: "$_id",
+                    count: 1
+                }
+            }
+        ]);
+
+        // Ensure all roles are included
+        const allRoles = ["admin", "manager", "team-member", "client"];
+
+        const formattedCounts = allRoles.map(role => {
+            const match = roleCounts.find(r => r.role === role);
+            return {
+                role,
+                count: match ? match.count : 0
+            };
+        });
+
+        res.status(200).json({
+            message: "User role counts retrieved successfully",
+            data: formattedCounts
+        });
+    } catch (error) {
+        console.error("Error fetching user role counts:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
+
 const getUserById = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -137,4 +193,4 @@ const getAssigneesDropdown = async (req, res) => {
 };
 
 
-module.exports = { getAllUsers, getUserById, updateUser, deleteUser, getClientDropdown, getAssigneesDropdown };
+module.exports = { getAllUsers, getUserById, getUserReportData, updateUser, deleteUser, getClientDropdown, getAssigneesDropdown, getUserCountsByRole };

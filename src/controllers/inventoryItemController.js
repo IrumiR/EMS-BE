@@ -92,6 +92,22 @@ const getAllDropdown = async (req, res) => {
     }
 };
 
+const getInventoryReportData = async (req, res) => {
+    try {
+        const inventoryItems = await InventoryItem.find({}, 'itemName totalQuantity createdAt category isExternal condition price')
+            .sort({ createdAt: 1 }); 
+
+        res.status(200).json({
+            message: "Inventory report data retrieved successfully",
+            items: inventoryItems
+        });
+    } catch (error) {
+        console.error("Error fetching inventory report data:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
 const getInventoryItemById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -188,4 +204,4 @@ const createReservation = async (req, res) => {
 
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById, updateInventoryItem, deleteInventoryItem, createReservation };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById,getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation };

@@ -65,6 +65,36 @@ const getAllBudgets = async (req, res) => {
     }
 }
 
+const getBudgetReportData = async (req, res) => {
+    try {
+        const budgets = await Budget.find(
+            { isApproved: true }, 
+            'eventId clientId totalAmount createdAt createdBy'
+        )
+        .populate({
+            path: 'eventId',
+            select: 'eventName'
+        })
+        .populate({
+            path: 'clientId',
+            select: 'userName'
+        })
+        .populate({
+            path: 'createdBy',
+            select: 'userName'
+        })
+        .sort({ createdAt: 1 }); 
+
+        res.status(200).json({
+            message: "Budget report data retrieved successfully",
+            budgets
+        });
+    } catch (error) {
+        console.error("Error fetching budget report data:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
 const getBudgetById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -183,6 +213,7 @@ const updateStatus = async (req, res) => {
 module.exports = {
     createBudget,
     getAllBudgets,
+    getBudgetReportData,
     getBudgetById,
     updateBudget,
     deleteBudget,
