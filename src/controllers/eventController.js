@@ -38,7 +38,8 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "", clientId } = req.query;
+        const { page = 1, limit = 10, search = "", clientId, status,
+            eventType  } = req.query;
 
         const query = {
             $or: [
@@ -53,12 +54,25 @@ const getAllEvents = async (req, res) => {
             query.$and.push({ clientId });
         }
 
+        // Add status to query if provided
+        if (status) {
+            query.$and = query.$and || [];
+            query.$and.push({ status });
+        }
+
+        // Add eventType to query if provided
+        if (eventType) {
+            query.$and = query.$and || [];
+            query.$and.push({ eventType });
+        }
+
         const events = await Event.find(query)
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate('clientId', 'userName')
             .populate('inventoryItems', 'itemName')
-            .populate('createdBy', 'userName');
+            .populate('createdBy', 'userName')
+            .sort({ createdAt: -1 });
 
         const totalCount = await Event.countDocuments(query);
 
@@ -79,75 +93,94 @@ const getAllEvents = async (req, res) => {
 };
 
 const getMonthlyEvents = async (req, res) => {
-    try {
-        const { year, month } = req.query;
+  try {
+    const { year, month, userId, clientId } = req.query;
 
-        if (!year || !month) {
-            return res.status(400).json({ message: "Year and month are required" });
-        }
-
-        const y = parseInt(year);
-        const m = parseInt(month) - 1;
-
-        const startOfMonth = new Date(y, m, 1);
-        const endOfMonth = new Date(y, m + 1, 0, 23, 59, 59, 999);
-        const daysInMonth = endOfMonth.getDate();
-
-        const events = await Event.find({
-            $or: [
-                {
-                    startDate: { $lte: endOfMonth },
-                    endDate: { $gte: startOfMonth }
-                }
-            ]
-        }).select('_id eventName startDate endDate startTime proposedLocation clientId , status')
-        .populate('clientId', 'userName');
-
-        const eventMap = {};
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            eventMap[dateKey] = [];
-        }
-
-        events.forEach(event => {
-            const start = new Date(event.startDate);
-            const end = new Date(event.endDate);
-
-            const current = new Date(start);
-
-            while (current <= end) {
-                const currentYear = current.getFullYear();
-                const currentMonth = current.getMonth() + 1;
-
-                if (currentYear === y && currentMonth === parseInt(month)) {
-                    const dayKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
-                    if (eventMap[dayKey]) {
-                        eventMap[dayKey].push({
-                            _id: event._id,
-                            eventName: event.eventName,
-                            startDate: event.startDate,
-                            endDate: event.endDate,
-                            startTime: event.startTime,
-                            proposedLocation: event.proposedLocation,
-                            clientName: event.clientId?.userName || "Unknown",
-                            status: event.status
-                        });
-                    }
-                }
-                current.setDate(current.getDate() + 1);
-            }
-        });
-
-        res.status(200).json({
-            message: "Monthly events retrieved successfully",
-            events: eventMap
-        });
-
-    } catch (error) {
-        console.error("Error fetching monthly events:", error);
-        res.status(500).json({ message: "Something went wrong", error: error.message });
+    if (!year || !month) {
+      return res.status(400).json({ message: "Year and month are required" });
     }
+
+    const y = parseInt(year);
+    const m = parseInt(month) - 1;
+
+    const startOfMonth = new Date(y, m, 1);
+    const endOfMonth = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    const daysInMonth = endOfMonth.getDate();
+
+    const query = {
+      $or: [
+        {
+          startDate: { $lte: endOfMonth },
+          endDate: { $gte: startOfMonth },
+        },
+      ],
+    };
+
+    // 🔹 Add filter by userId (for team-members/managers via assignees)
+    if (userId) {
+      query.assignees = { $in: [userId] };
+    }
+
+    // 🔹 Add filter by clientId (for clients)
+    if (clientId) {
+      query.clientId = clientId;
+    }
+
+    const events = await Event.find(query)
+      .select(
+        "_id eventName startDate endDate startTime proposedLocation clientId status"
+      )
+      .populate("clientId", "userName");
+
+    const eventMap = {};
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
+        day
+      ).padStart(2, "0")}`;
+      eventMap[dateKey] = [];
+    }
+
+    events.forEach((event) => {
+      const start = new Date(event.startDate);
+      const end = new Date(event.endDate);
+      const current = new Date(start);
+
+      while (current <= end) {
+        const currentYear = current.getFullYear();
+        const currentMonth = current.getMonth() + 1;
+
+        if (currentYear === y && currentMonth === parseInt(month)) {
+          const dayKey = `${currentYear}-${String(currentMonth).padStart(
+            2,
+            "0"
+          )}-${String(current.getDate()).padStart(2, "0")}`;
+          if (eventMap[dayKey]) {
+            eventMap[dayKey].push({
+              _id: event._id,
+              eventName: event.eventName,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              startTime: event.startTime,
+              proposedLocation: event.proposedLocation,
+              clientName: event.clientId?.userName || "Unknown",
+              status: event.status,
+            });
+          }
+        }
+
+        current.setDate(current.getDate() + 1);
+      }
+    });
+
+    res.status(200).json({
+      message: "Monthly events retrieved successfully",
+      events: eventMap,
+    });
+  } catch (error) {
+    console.error("Error fetching monthly events:", error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
 };
 
 const getEventCountsByStatus = async (req, res) => {
@@ -223,7 +256,7 @@ const getEventUpcomingData = async (req, res) => {
         const today = new Date(); 
         const events = await Event.find(
             { startDate: { $gte: today } }, 
-            'eventName startDate endDate status proposedLocation clientId'
+            'eventName startDate endDate status proposedLocation clientId progress'
         )
         .populate({
             path: 'clientId',

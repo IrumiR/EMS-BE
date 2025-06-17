@@ -81,6 +81,15 @@ const eventSchema = new mongoose.Schema({
             required: false,
         },
     ],
+    assignees: [
+        {
+
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+
+        },
+    ],
     progress: {
         type: Number,
         default: 0,

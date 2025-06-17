@@ -29,10 +29,10 @@ router.get('/client', verifyToken, authorizeRoles("admin", "manager", "team-memb
 router.get('/all', verifyToken, authorizeRoles("admin", "manager"), getAllUsers);
 router.get('/report', verifyToken, authorizeRoles("admin"), getUserReportData);
 router.get('/user-count-by-role', verifyToken, authorizeRoles("admin"), getUserCountsByRole);
-router.get('/:id', verifyToken, authorizeRoles("admin", "manager"), getUserById);
+router.get('/:id', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getUserById);
 router.get('/dropdown/clients', verifyToken, authorizeRoles("admin", "manager"), getClientDropdown);
-router.get('/dropdown/assignees', verifyToken, authorizeRoles("admin", "manager"), getAssigneesDropdown);
-router.put('/:id', verifyToken, authorizeRoles("admin", "manager"), updateUser);
+router.get('/dropdown/assignees', verifyToken, authorizeRoles("admin", "manager", "team-member"), getAssigneesDropdown);
+router.put('/:id', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), updateUser);
 router.delete('/:id', verifyToken, authorizeRoles("admin", "manager"), deleteUser);
 
 

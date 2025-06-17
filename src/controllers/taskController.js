@@ -1,6 +1,7 @@
 const Task = require('../models/taskModel');
 const Event = require('../models/eventModel');
 const User = require('../models/userModel');
+const mongoose = require('mongoose');
 
 const createTask = async (req, res) => {
     try {
@@ -107,6 +108,45 @@ const getAllTasks = async (req, res) => {
     }
 };
 
+const getAllTasksByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { page = 1, limit = 10, search = "" } = req.query;
+
+        const objectUserId = new mongoose.Types.ObjectId(userId);
+
+        const query = {
+            assignees: objectUserId,
+            $or: [
+                { taskName: { $regex: search, $options: "i" } },
+                { taskDescription: { $regex: search, $options: "i" } }
+            ]
+        };
+
+        const tasks = await Task.find(query)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('eventId', 'eventName')
+            .populate('assignees', 'userName') // populate user details if ref: 'User'
+            .populate('createdBy', 'userName');
+
+        const totalCount = await Task.countDocuments(query);
+
+        res.status(200).json({
+            message: "Tasks retrieved successfully",
+            tasks,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching tasks:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+};
 
 const getTaskById = async (req, res) => {
     try {
@@ -138,7 +178,7 @@ const getAllTasksByEventId = async (req, res) => {
         const { page = 1, limit = 10, search = "" } = req.query;
 
         const query = {
-            eventId,
+            eventId: eventId,
             $or: [
                 { taskName: { $regex: search, $options: "i" } },
                 { taskDescription: { $regex: search, $options: "i" } }
@@ -169,7 +209,6 @@ const getAllTasksByEventId = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
-
 
 const updateTask = async (req, res) => {
     try {
@@ -315,6 +354,7 @@ const calculateAndUpdateEventProgress = async (eventId) => {
 module.exports = {
     createTask,
     getAllTasks,
+    getAllTasksByUserId,
     getTaskById,
     getAllTasksByEventId,
     updateTask,

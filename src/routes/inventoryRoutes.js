@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/create", verifyToken, authorizeRoles("admin", "manager", "team-member"), createInventoryItem);
 router.get("/all", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllInventoryItems);
 router.get("/report", verifyToken, authorizeRoles("admin"), getInventoryReportData);
-router.get("/all", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllInventoryItems);
+router.get("/all-dropdown", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllDropdown);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), getInventoryItemById);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateInventoryItem);
 router.delete("/:id", verifyToken, authorizeRoles("admin", "manager"), deleteInventoryItem);

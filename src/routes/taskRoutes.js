@@ -1,13 +1,14 @@
 const express = require("express");
-const { createTask, getAllTasks, getTaskById, getAllTasksByEventId, updateTask, updateStatus, updatePriority, deleteTask, calculateAndUpdateEventProgress } = require("../controllers/taskController");
+const { createTask, getAllTasks, getAllTasksByUserId, getTaskById, getAllTasksByEventId, updateTask, updateStatus, updatePriority, deleteTask, calculateAndUpdateEventProgress } = require("../controllers/taskController");
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
 
 router.post("/create", verifyToken, authorizeRoles("admin", "manager", "team-member"), createTask);
-router.get("/all", verifyToken, authorizeRoles("admin", "manager", "client"), getAllTasks);
+router.get("/all", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getAllTasks);
+router.get("/all/:userId", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getAllTasksByUserId);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getTaskById);
-router.get("/all/:eventId", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllTasksByEventId);
+router.get("/all-by-event/:eventId", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getAllTasksByEventId);
 router.put("/status/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateStatus);
 router.put("/priority/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updatePriority);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateTask);
