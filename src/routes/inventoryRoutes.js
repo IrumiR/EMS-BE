@@ -1,5 +1,5 @@
 const express = require('express');
-const { createInventoryItem, getAllInventoryItems, getInventoryItemById, getAllDropdown, updateInventoryItem, deleteInventoryItem, createReservation,getInventoryReportData } = require('../controllers/inventoryItemController');
+const { createInventoryItem, getAllInventoryItems, getInventoryItemById, getInventoryItemCount, getAllDropdown, updateInventoryItem, deleteInventoryItem, createReservation,getInventoryReportData } = require('../controllers/inventoryItemController');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
@@ -7,6 +7,7 @@ const router = express.Router();
 router.post("/create", verifyToken, authorizeRoles("admin", "manager", "team-member"), createInventoryItem);
 router.get("/all", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllInventoryItems);
 router.get("/report", verifyToken, authorizeRoles("admin"), getInventoryReportData);
+router.get("/count", verifyToken, authorizeRoles("admin", "manager", "team-member"), getInventoryItemCount);
 router.get("/all-dropdown", verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllDropdown);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), getInventoryItemById);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), updateInventoryItem);

@@ -9,8 +9,8 @@ router.get("/all", verifyToken, authorizeRoles("admin", "manager", "client"), ge
 router.get("/report", verifyToken, authorizeRoles("admin"), getEventReportData);
 router.get("/upcoming", verifyToken, authorizeRoles("admin"), getEventUpcomingData);
 router.get("/events-count", verifyToken, authorizeRoles("admin"), getMonthlyEventCounts);
-router.get("/events-count-by-status", verifyToken, authorizeRoles("admin"), getEventCountsByStatus);
-router.get("/monthly", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getMonthlyEvents); 
+router.get("/events-count-by-status", verifyToken, authorizeRoles("admin", "manager", "team-member"), getEventCountsByStatus);
+router.get("/monthly", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getMonthlyEvents);
 router.get("/dropdown/events", verifyToken, authorizeRoles("admin", "manager", "team-member"), getEventsDropdown);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "client"), getEventById);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager"), updateEvent);

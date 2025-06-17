@@ -95,6 +95,55 @@ const getBudgetReportData = async (req, res) => {
     }
 };
 
+const getBudgetCountsByStatus = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $group: {
+          _id: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$isApproved", true] }, then: "Approved" },
+                { case: { $eq: ["$isApproved", false] }, then: "Rejected" },
+              ],
+              default: "Pending",
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          status: "$_id",
+          count: 1,
+        },
+      },
+    ];
+
+    const statusCounts = await Budget.aggregate(pipeline);
+
+    const allStatuses = ["Pending", "Approved", "Rejected"];
+
+    const formattedCounts = allStatuses.map((status) => {
+      const match = statusCounts.find((s) => s.status === status);
+      return {
+        status,
+        count: match ? match.count : 0,
+      };
+    });
+
+    res.status(200).json({
+      message: "Budget status counts retrieved successfully",
+      data: formattedCounts,
+    });
+  } catch (error) {
+    console.error("Error fetching budget status counts:", error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
+};
+
+
 const getBudgetById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -214,6 +263,7 @@ module.exports = {
     createBudget,
     getAllBudgets,
     getBudgetReportData,
+    getBudgetCountsByStatus,
     getBudgetById,
     updateBudget,
     deleteBudget,

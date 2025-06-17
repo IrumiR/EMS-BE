@@ -107,6 +107,28 @@ const getInventoryReportData = async (req, res) => {
     }
 };
 
+const getInventoryItemCount = async (req, res) => {
+    try {
+        const [totalCount, internalCount, externalCount] = await Promise.all([
+            InventoryItem.countDocuments(),
+            InventoryItem.countDocuments({ isExternal: false }),
+            InventoryItem.countDocuments({ isExternal: true })
+        ]);
+
+        res.status(200).json({
+            message: "Inventory item counts retrieved successfully",
+            data: {
+                totalCount,
+                internalCount,
+                externalCount
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching inventory item count:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
 
 const getInventoryItemById = async (req, res) => {
     try {
@@ -204,4 +226,4 @@ const createReservation = async (req, res) => {
 
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemById,getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown,getInventoryItemCount, getInventoryItemById,getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation };

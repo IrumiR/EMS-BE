@@ -210,6 +210,63 @@ const getAllTasksByEventId = async (req, res) => {
     }
 };
 
+const getTaskCountsByStatus = async (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        const pipeline = [];
+
+        if (userId) {
+            // Convert userId to ObjectId
+            const objectUserId = new mongoose.Types.ObjectId(userId);
+
+            // Match any task where assignees contains this user
+            pipeline.push({
+                $match: {
+                    assignees: objectUserId,
+                },
+            });
+        }
+
+        // Group and count by status
+        pipeline.push(
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    status: "$_id",
+                    count: 1,
+                },
+            }
+        );
+
+        const statusCounts = await Task.aggregate(pipeline);
+
+        const allStatuses = ["To Do", "In Progress", "Completed", "Over Due", "Cancelled"]; // match your enum
+
+        const formattedCounts = allStatuses.map((status) => {
+            const match = statusCounts.find((s) => s.status === status);
+            return {
+                status,
+                count: match ? match.count : 0,
+            };
+        });
+
+        res.status(200).json({
+            message: "Task status counts retrieved successfully",
+            data: formattedCounts,
+        });
+    } catch (error) {
+        console.error("Error fetching task status counts:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
 const updateTask = async (req, res) => {
     try {
         // Step 1: Update the task
@@ -357,6 +414,7 @@ module.exports = {
     getAllTasksByUserId,
     getTaskById,
     getAllTasksByEventId,
+    getTaskCountsByStatus,
     updateTask,
     updateStatus,
     updatePriority,
