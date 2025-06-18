@@ -38,8 +38,14 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "", clientId, status,
-            eventType  } = req.query;
+        const {
+            page = 1,
+            limit = 10,
+            search = "",
+            clientId,
+            status,
+            eventType
+        } = req.query;
 
         const query = {
             $or: [
@@ -60,10 +66,13 @@ const getAllEvents = async (req, res) => {
             query.$and.push({ status });
         }
 
-        // Add eventType to query if provided
+        // Add eventType filter if provided
         if (eventType) {
+            const eventTypes = Array.isArray(eventType)
+                ? eventType
+                : [eventType];
             query.$and = query.$and || [];
-            query.$and.push({ eventType });
+            query.$and.push({ eventType: { $in: eventTypes } });
         }
 
         const events = await Event.find(query)
@@ -91,6 +100,7 @@ const getAllEvents = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
 
 const getMonthlyEvents = async (req, res) => {
   try {
