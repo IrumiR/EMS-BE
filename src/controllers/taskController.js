@@ -71,64 +71,35 @@ const createTask = async (req, res) => {
     }
 };
 
-
-const getAllTasks = async (req, res) => {
-    try {
-        const { page = 1, limit = 10, search = "" } = req.query;
-
-        const query = {
-            $or: [
-                { taskName: { $regex: search, $options: "i" } },
-                { taskDescription: { $regex: search, $options: "i" } }
-            ]
-        };
-
-        const tasks = await Task.find(query)
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit))
-            .populate('eventId', 'eventName')
-            .populate('assignees', 'userName')
-            .populate('createdBy', 'userName')
-
-        const totalCount = await Task.countDocuments(query);
-
-        res.status(200).json({
-            message: "Tasks retrieved successfully",
-            tasks,
-            pagination: {
-                total: totalCount,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(totalCount / limit)
-            }
-        });
-    } catch (error) {
-        console.error("Error fetching tasks:", error);
-        res.status(500).json({ message: "Something went wrong", error: error.message });
-    }
-};
-
 const getAllTasksByUserId = async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { page = 1, limit = 10, search = "" } = req.query;
-
-        const objectUserId = new mongoose.Types.ObjectId(userId);
+        const { userId, page = 1, limit = 10, search = "", status } = req.query;
 
         const query = {
-            assignees: objectUserId,
             $or: [
                 { taskName: { $regex: search, $options: "i" } },
                 { taskDescription: { $regex: search, $options: "i" } }
             ]
         };
 
+        if (
+            userId &&
+            userId !== "all" &&
+            mongoose.Types.ObjectId.isValid(userId)
+        ) {
+            query.assignees = { $in: [new mongoose.Types.ObjectId(userId)] };
+        }
+
+        if (status) {
+            query.status = status;
+        }
+
         const tasks = await Task.find(query)
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('eventId', 'eventName')
-            .populate('assignees', 'userName') // populate user details if ref: 'User'
-            .populate('createdBy', 'userName');
+            .populate("eventId", "eventName")
+            .populate("assignees", "userName")
+            .populate("createdBy", "userName");
 
         const totalCount = await Task.countDocuments(query);
 
@@ -139,14 +110,20 @@ const getAllTasksByUserId = async (req, res) => {
                 total: totalCount,
                 page: parseInt(page),
                 limit: parseInt(limit),
-                totalPages: Math.ceil(totalCount / limit)
-            }
+                totalPages: Math.ceil(totalCount / limit),
+            },
         });
     } catch (error) {
         console.error("Error fetching tasks:", error);
-        res.status(500).json({ message: "Something went wrong", error: error.message });
+        res.status(500).json({
+            message: "Something went wrong",
+            error: error.message,
+        });
     }
 };
+  
+  
+  
 
 const getTaskById = async (req, res) => {
     try {
@@ -175,7 +152,7 @@ const getTaskById = async (req, res) => {
 const getAllTasksByEventId = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { page = 1, limit = 10, search = "" } = req.query;
+        const { page = 1, limit = 10, search = "", status } = req.query;
 
         const query = {
             eventId: eventId,
@@ -184,6 +161,10 @@ const getAllTasksByEventId = async (req, res) => {
                 { taskDescription: { $regex: search, $options: "i" } }
             ]
         };
+
+        if (status) {
+            query.status = status;
+        }
 
         const tasks = await Task.find(query)
             .skip((page - 1) * limit)
@@ -410,7 +391,6 @@ const calculateAndUpdateEventProgress = async (eventId) => {
 
 module.exports = {
     createTask,
-    getAllTasks,
     getAllTasksByUserId,
     getTaskById,
     getAllTasksByEventId,

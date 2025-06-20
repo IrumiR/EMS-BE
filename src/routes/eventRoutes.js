@@ -5,13 +5,13 @@ const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
 
 router.post("/create", verifyToken, authorizeRoles("admin", "manager"), createEvent);
-router.get("/all", verifyToken, authorizeRoles("admin", "manager", "client"), getAllEvents);
+router.get("/all", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getAllEvents);
 router.get("/report", verifyToken, authorizeRoles("admin"), getEventReportData);
-router.get("/upcoming", verifyToken, authorizeRoles("admin"), getEventUpcomingData);
-router.get("/events-count", verifyToken, authorizeRoles("admin"), getMonthlyEventCounts);
-router.get("/events-count-by-status", verifyToken, authorizeRoles("admin", "manager", "team-member"), getEventCountsByStatus);
+router.get("/upcoming", verifyToken, authorizeRoles("admin", "manager", "team-member"), getEventUpcomingData);
+router.get("/events-count", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getMonthlyEventCounts);
+router.get("/events-count-by-status", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getEventCountsByStatus);
 router.get("/monthly", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getMonthlyEvents);
-router.get("/dropdown/events", verifyToken, authorizeRoles("admin", "manager", "team-member"), getEventsDropdown);
+router.get("/dropdown/events", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getEventsDropdown);
 router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "client"), getEventById);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager"), updateEvent);
 router.put("/status/:id", verifyToken, authorizeRoles("admin", "manager"), updateStatus);

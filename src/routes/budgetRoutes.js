@@ -5,7 +5,7 @@ const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
 
 router.post('/create', verifyToken, authorizeRoles("admin", "manager"), createBudget);
-router.get('/all', verifyToken, authorizeRoles("admin", "manager"), getAllBudgets);
+router.get('/all', verifyToken, authorizeRoles("admin", "manager", "client"), getAllBudgets);
 router.get('/counts-by-status', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getBudgetCountsByStatus);
 router.get('/report', verifyToken, authorizeRoles("admin"), getBudgetReportData);
 router.get('/:id', verifyToken, authorizeRoles("admin", "manager"), getBudgetById);
