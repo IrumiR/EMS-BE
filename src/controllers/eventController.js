@@ -3,6 +3,8 @@ const InventoryItem = require("../models/inventoryItemModel");
 const Client = require("../models/clientsModel");
 const User = require("../models/userModel");
 const Assignees = require("../models/assigneesModel");
+const Task = require("../models/taskModel");
+const Comment = require("../models/commentModel");
 const mongoose = require("mongoose");
 const { Types } = mongoose;
 const { sendNotification } = require('./notificationController');
@@ -404,12 +406,31 @@ const updateEvent = async (req, res) => {
 
 const deleteEvent = async (req, res) => {
   try {
-    const deletedEvent = await Event.findByIdAndDelete(req.params.id);
+    const eventId = req.params.id;
+
+    // Find and delete the event
+    const deletedEvent = await Event.findByIdAndDelete(eventId);
     if (!deletedEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
-    res.status(200).json({ message: "Event deleted successfully" });
+
+    // Find tasks linked to this event
+    const tasks = await Task.find({ eventId });
+
+    // Collect all comment IDs from the tasks
+    const commentIds = tasks.flatMap(task => task.comments || []);
+
+    // Delete all related comments
+    if (commentIds.length > 0) {
+      await Comment.deleteMany({ _id: { $in: commentIds } });
+    }
+
+    // Delete all tasks related to the event
+    await Task.deleteMany({ eventId });
+
+    res.status(200).json({ message: "Event and related data deleted successfully" });
   } catch (error) {
+    console.error("Error deleting event:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };

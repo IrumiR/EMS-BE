@@ -1,6 +1,7 @@
 const Task = require('../models/taskModel');
 const Event = require('../models/eventModel');
 const User = require('../models/userModel');
+const Comment = require('../models/commentModel');
 const mongoose = require('mongoose');
 
 const createTask = async (req, res) => {
@@ -330,17 +331,24 @@ const updatePriority = async (req, res) => {
 
 const deleteTask = async (req, res) => {
     try {
-        // Step 1: Find the task to get its eventId
-        const taskToDelete = await Task.findById(req.params.id);
+        const taskId = req.params.id;
+
+        // Step 1: Find the task to get eventId and comments
+        const taskToDelete = await Task.findById(taskId);
 
         if (!taskToDelete) {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        // Step 2: Delete the task
-        await Task.findByIdAndDelete(req.params.id);
+        // Step 2: Delete associated comments
+        if (taskToDelete.comments && taskToDelete.comments.length > 0) {
+            await Comment.deleteMany({ _id: { $in: taskToDelete.comments } });
+        }
 
-        // Step 3: Remove the task reference from the associated event
+        // Step 3: Delete the task (subtasks will be removed as they're embedded)
+        await Task.findByIdAndDelete(taskId);
+
+        // Step 4: Remove the task reference from the associated event
         await Event.findByIdAndUpdate(
             taskToDelete.eventId,
             {
@@ -351,13 +359,13 @@ const deleteTask = async (req, res) => {
             { new: true }
         );
 
-        res.status(200).json({ message: "Task deleted successfully" });
+        res.status(200).json({ message: "Task and related data deleted successfully" });
     } catch (error) {
         console.error("Error deleting task:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
-
+  
 const calculateAndUpdateEventProgress = async (eventId) => {
     try {
         const tasks = await Task.find({ eventId });
