@@ -389,6 +389,60 @@ const calculateAndUpdateEventProgress = async (eventId) => {
     }
 };
 
+const getUpcomingTasksByClientId = async (req, res) => {
+    const { clientId } = req.params;
+
+    if (!clientId) {
+        return res.status(400).json({ message: 'Client ID is required' });
+    }
+
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Step 1: Get upcoming events by clientId
+        const upcomingEvents = await Event.find({
+            clientId,
+            startDate: { $gte: today },
+        }).select('_id');
+
+        const eventIds = upcomingEvents.map(event => event._id);
+
+        if (eventIds.length === 0) {
+            return res.status(200).json([]); // No events = no tasks
+        }
+
+        // Step 2: Get upcoming tasks related to those events
+        const upcomingTasks = await Task.find({
+            eventId: { $in: eventIds },
+            startDate: { $gte: today },
+        })
+            .select('taskName startDate endDate status priority eventId') // only selected fields
+            .populate({
+                path: 'eventId',
+                select: 'eventName',
+            });
+
+        // Optional: transform output
+        const response = upcomingTasks.map(task => ({
+            taskName: task.taskName,
+            eventName: task.eventId?.eventName || 'N/A',
+            startDate: task.startDate,
+            endDate: task.endDate,
+            status: task.status,
+            priority: task.priority,
+        }));
+
+        return res.status(200).json({
+            message: 'Upcoming tasks retrieved successfully',
+            tasks: response
+        });
+    } catch (error) {
+        console.error('Error fetching upcoming tasks:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+
 module.exports = {
     createTask,
     getAllTasksByUserId,
@@ -399,5 +453,6 @@ module.exports = {
     updateStatus,
     updatePriority,
     deleteTask,
-    calculateAndUpdateEventProgress
+    calculateAndUpdateEventProgress,
+    getUpcomingTasksByClientId
 };

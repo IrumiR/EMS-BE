@@ -12,7 +12,7 @@ router.get("/events-count", verifyToken, authorizeRoles("admin", "manager", "tea
 router.get("/events-count-by-status", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getEventCountsByStatus);
 router.get("/monthly", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getMonthlyEvents);
 router.get("/dropdown/events", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getEventsDropdown);
-router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "client"), getEventById);
+router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getEventById);
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager"), updateEvent);
 router.put("/status/:id", verifyToken, authorizeRoles("admin", "manager"), updateStatus);
 router.delete("/:id", verifyToken, authorizeRoles("admin", "manager"), deleteEvent);

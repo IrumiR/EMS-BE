@@ -1,11 +1,11 @@
 const Comment = require('../models/commentModel');
 const Task = require('../models/taskModel');
+const { sendNotification } = require('./notificationController');
 
 const createComment = async (req, res) => {
     try {
         const { taskId, commentText, createdBy } = req.body;
 
-        // Step 1: Create and save the new comment
         const newComment = new Comment({
             taskId,
             commentText,
@@ -14,7 +14,12 @@ const createComment = async (req, res) => {
 
         const savedComment = await newComment.save();
 
-        // Step 2: Add this comment to the associated task
+        await sendNotification({
+            recipients: [createdBy], 
+            type: 'comment',
+            message: `New comment on your task.`,
+        });
+
         await Task.findByIdAndUpdate(
             taskId,
             {
@@ -69,7 +74,7 @@ const getCommentsByTaskId = async (req, res) => {
 
 const addReplyToComment = async (req, res) => {
     try {
-        const { commentId } = req.params; // parent comment ID
+        const { commentId } = req.params; 
         const { replyText, createdBy } = req.body;
 
         const parentComment = await Comment.findById(commentId);
@@ -100,14 +105,12 @@ const deleteComment = async (req, res) => {
     try {
         const { commentId } = req.params;
 
-        // Delete the comment only (replies remain because they're separate documents)
         const deletedComment = await Comment.findByIdAndDelete(commentId);
 
         if (!deletedComment) {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        // Remove from Task
         await Task.findOneAndUpdate(
             { comments: commentId },
             { $pull: { comments: commentId } },

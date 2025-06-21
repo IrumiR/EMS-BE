@@ -5,6 +5,7 @@ const User = require("../models/userModel");
 const Assignees = require("../models/assigneesModel");
 const mongoose = require("mongoose");
 const { Types } = mongoose;
+const { sendNotification } = require('./notificationController');
 
 const createEvent = async (req, res) => {
   try {
@@ -47,6 +48,14 @@ const createEvent = async (req, res) => {
     });
 
     const savedEvent = await newEvent.save();
+    
+    const recipients = [...new Set([clientId, ...assignees])];
+
+    await sendNotification({
+      recipients,
+      type: 'event',
+      message: `New event "${eventName}" created`
+    });
 
     res
       .status(201)
@@ -74,19 +83,16 @@ const getAllEvents = async (req, res) => {
       ],
     };
 
-    // Add clientId to query if provided
     if (clientId) {
       query.$and = query.$and || [];
       query.$and.push({ clientId });
     }
 
-    // Add status to query if provided
     if (status) {
       query.$and = query.$and || [];
       query.$and.push({ status });
     }
 
-    // Add eventType filter if provided
     if (eventType) {
       const eventTypes = Array.isArray(eventType) ? eventType : [eventType];
       query.$and = query.$and || [];
@@ -145,12 +151,10 @@ const getMonthlyEvents = async (req, res) => {
       ],
     };
 
-    // 🔹 Add filter by userId (for team-members/managers via assignees)
     if (userId) {
       query.assignees = { $in: [userId] };
     }
 
-    // 🔹 Add filter by clientId (for clients)
     if (clientId) {
       query.clientId = clientId;
     }
