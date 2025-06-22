@@ -31,7 +31,7 @@ const createInventoryItem = async (req, res) => {
 
 const getAllInventoryItems = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "", itemType } = req.query; // Changed from isExternal to itemType
+        const { page = 1, limit = 10, search = "", itemType, category } = req.query;
 
         const query = {
             $or: [
@@ -40,9 +40,14 @@ const getAllInventoryItems = async (req, res) => {
             ]
         };
 
-        // Add itemType filter
+        // Filter by itemType
         if (itemType && itemType !== 'all') {
-            query.isExternal = itemType === 'external'; // Convert itemType to boolean for isExternal field
+            query.isExternal = itemType === 'external';
+        }
+
+        // Filter by category
+        if (category && category !== 'all') {
+            query.category = category;
         }
 
         const inventoryItems = await InventoryItem.find(query)
