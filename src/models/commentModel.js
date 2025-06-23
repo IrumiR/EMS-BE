@@ -8,7 +8,7 @@ const commentSchema = new mongoose.Schema({
     },
     commentText: {
         type: String,
-        required: true,
+        required: false,
         trim: true
     },
     createdBy: {
@@ -20,7 +20,13 @@ const commentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Comment',
         default: null // Null means it's a root comment, otherwise it's a reply
-    }
+    },
+    images: [
+        {
+            data: Buffer,
+            contentType: String
+        }
+      ]
 }, { 
     timestamps: true  
 });

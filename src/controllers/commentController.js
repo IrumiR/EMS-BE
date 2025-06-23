@@ -1,32 +1,42 @@
 const Comment = require('../models/commentModel');
 const Task = require('../models/taskModel');
 const { sendNotification } = require('./notificationController');
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Export this if used in your route
+const uploadCommentImages = upload.array('images');
+
 
 const createComment = async (req, res) => {
     try {
         const { taskId, commentText, createdBy } = req.body;
 
+        const images = req.files?.map(file => ({
+            data: file.buffer,
+            contentType: file.mimetype
+        })) || [];
+
         const newComment = new Comment({
             taskId,
             commentText,
             createdBy,
+            images // Add images array to the comment
         });
 
         const savedComment = await newComment.save();
 
         await sendNotification({
-            recipients: [createdBy], 
+            recipients: [createdBy],
             type: 'comment',
             message: `New comment on your task.`,
         });
 
         await Task.findByIdAndUpdate(
             taskId,
-            {
-                $push: {
-                    comments: savedComment._id
-                }
-            },
+            { $push: { comments: savedComment._id } },
             { new: true, useFindAndModify: false }
         );
 
@@ -39,30 +49,49 @@ const createComment = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+  
 
 const getCommentsByTaskId = async (req, res) => {
     try {
         const { taskId } = req.params;
 
+        // Get top-level comments
         const comments = await Comment.find({ taskId, parentCommentId: null })
             .populate('createdBy', 'userName')
             .sort({ createdAt: 1 });
 
         const commentIds = comments.map(c => c._id);
+
+        // Get replies
         const replies = await Comment.find({ parentCommentId: { $in: commentIds } })
             .populate('createdBy', 'userName');
 
+        // Helper to convert buffer images to base64
+        const normalizeImages = (images = []) => {
+            return images.map(img => ({
+                _id: img._id,
+                contentType: img.contentType,
+                data: img.data.toString('base64')
+            }));
+        };
+
+        // Normalize replies
         const replyMap = {};
         for (const reply of replies) {
             const parentId = reply.parentCommentId.toString();
+            const normalizedReply = reply.toObject();
+            normalizedReply.images = normalizeImages(normalizedReply.images);
             if (!replyMap[parentId]) replyMap[parentId] = [];
-            replyMap[parentId].push(reply);
+            replyMap[parentId].push(normalizedReply);
         }
 
-        const result = comments.map(comment => ({
-            ...comment.toObject(),
-            replies: replyMap[comment._id.toString()] || []
-        }));
+        // Normalize main comments and attach replies
+        const result = comments.map(comment => {
+            const obj = comment.toObject();
+            obj.images = normalizeImages(obj.images);
+            obj.replies = replyMap[comment._id.toString()] || [];
+            return obj;
+        });
 
         res.status(200).json(result);
     } catch (error) {
@@ -70,12 +99,18 @@ const getCommentsByTaskId = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+  
 
 
 const addReplyToComment = async (req, res) => {
     try {
         const { commentId } = req.params; 
         const { replyText, createdBy } = req.body;
+
+        const images = req.files?.map(file => ({
+            data: file.buffer,
+            contentType: file.mimetype
+        })) || [];
 
         const parentComment = await Comment.findById(commentId);
         if (!parentComment) {
@@ -86,7 +121,8 @@ const addReplyToComment = async (req, res) => {
             taskId: parentComment.taskId,
             commentText: replyText,
             createdBy,
-            parentCommentId: parentComment._id
+            parentCommentId: parentComment._id,
+            images
         });
 
         const savedReply = await reply.save();
@@ -131,5 +167,6 @@ module.exports = {
     createComment,
     getCommentsByTaskId,
     deleteComment,
-    addReplyToComment
+    addReplyToComment,
+    uploadCommentImages
 };

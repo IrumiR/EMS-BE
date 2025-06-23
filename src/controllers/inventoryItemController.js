@@ -174,12 +174,24 @@ const updateInventoryItem = async (req, res) => {
 
 const deleteInventoryItem = async (req, res) => {
     try {
-        const deletedInventoryItem = await InventoryItem.findByIdAndDelete(req.params.id);
+        const inventoryItemId = req.params.id;
+
+        // Step 1: Delete the inventory item
+        const deletedInventoryItem = await InventoryItem.findByIdAndDelete(inventoryItemId);
+
         if (!deletedInventoryItem) {
             return res.status(404).json({ message: "Inventory item not found" });
         }
-        res.status(200).json({ message: "Inventory item deleted successfully" });
+
+        // Step 2: Remove the item from all events' inventoryItems array
+        await Event.updateMany(
+            { inventoryItems: inventoryItemId },
+            { $pull: { inventoryItems: inventoryItemId } }
+        );
+
+        res.status(200).json({ message: "Inventory item deleted and references removed from events" });
     } catch (error) {
+        console.error("Delete inventory error:", error);
         res.status(500).json({ message: "Something went wrong" });
     }
 };

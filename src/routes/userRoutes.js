@@ -2,7 +2,7 @@ const express = require('express');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
-const { getAllUsers, getUserById,updateUser, deleteUser, getClientDropdown, getAssigneesDropdown, getUserReportData, getUserCountsByRole } = require('../controllers/userController');
+const { getAllUsers, getUserById,updateUser, deleteUser, deactivateUser, getClientDropdown, getAssigneesDropdown, getUserReportData, getUserCountsByRole } = require('../controllers/userController');
 
 //only admin can access this router
 router.get('/admin', verifyToken, authorizeRoles("admin"), (req, res) => {
@@ -34,6 +34,7 @@ router.get('/dropdown/clients', verifyToken, authorizeRoles("admin", "manager", 
 router.get('/dropdown/assignees', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getAssigneesDropdown);
 router.put('/:id', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), updateUser);
 router.delete('/:id', verifyToken, authorizeRoles("admin", "manager"), deleteUser);
+router.put('/deactivate/:id', verifyToken, authorizeRoles("admin", "manager"), deactivateUser);
 
 
 module.exports = router;

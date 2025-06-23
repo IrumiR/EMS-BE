@@ -3,11 +3,16 @@ const bcrypt = require("bcryptjs");
 
 const getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const { page = 1, limit = 10, search = "", role } = req.query;
 
     const query = {
       $or: [{ userName: { $regex: search, $options: "i" } }],
     };
+
+    // ✅ Filter by role if provided and not 'all'
+    if (role && role !== "all") {
+      query.role = role;
+    }
 
     const users = await User.find(query)
       .select("-password")
@@ -164,6 +169,34 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const deactivateUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { isActive } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    res.status(200).json({
+      message: `User ${isActive ? "activated" : "deactivated"} successfully`,
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+
 const getClientDropdown = async (req, res) => {
   try {
     const clients = await User.find({ role: "client" }).select("userName");
@@ -208,6 +241,7 @@ module.exports = {
   getUserReportData,
   updateUser,
   deleteUser,
+  deactivateUser,
   getClientDropdown,
   getAssigneesDropdown,
   getUserCountsByRole
