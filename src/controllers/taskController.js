@@ -451,6 +451,73 @@ const getUpcomingTasksByClientId = async (req, res) => {
     }
   };
 
+const getTaskStatusCountsByClientId = async (req, res) => {
+    const { clientId } = req.params;
+
+    if (!clientId) {
+        return res.status(400).json({ message: 'Client ID is required' });
+    }
+
+    try {
+        const events = await Event.find({ clientId }).select('_id');
+        const eventIds = events.map(event => event._id);
+
+        if (eventIds.length === 0) {
+            const defaultStatuses = ["To Do", "In Progress", "Completed", "Cancelled"];
+            const data = defaultStatuses.map(status => ({
+                status,
+                count: 0
+            }));
+
+            return res.status(200).json({
+                message: 'Task status counts retrieved successfully',
+                data
+            });
+        }
+
+        const statusCounts = await Task.aggregate([
+            {
+                $match: {
+                    eventId: { $in: eventIds }
+                }
+            },
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const defaultStatuses = ["To Do", "In Progress", "Completed", "Cancelled"];
+        const counts = {};
+
+        defaultStatuses.forEach(status => {
+            counts[status] = 0;
+        });
+
+        statusCounts.forEach(item => {
+            counts[item._id] = item.count;
+        });
+
+        const data = defaultStatuses.map(status => ({
+            status,
+            count: counts[status]
+        }));
+
+        return res.status(200).json({
+            message: 'Task status counts retrieved successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error fetching task status counts:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
+
 module.exports = {
     createTask,
     getAllTasksByUserId,
@@ -462,5 +529,6 @@ module.exports = {
     updatePriority,
     deleteTask,
     calculateAndUpdateEventProgress,
-    getUpcomingTasksByClientId
+    getUpcomingTasksByClientId,
+    getTaskStatusCountsByClientId
 };
