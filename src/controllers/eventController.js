@@ -56,7 +56,8 @@ const createEvent = async (req, res) => {
     await sendNotification({
       recipients,
       type: 'event',
-      message: `New event "${eventName}" created`
+      message: `New event "${eventName}" created`,
+      sender: createdBy
     });
 
     res

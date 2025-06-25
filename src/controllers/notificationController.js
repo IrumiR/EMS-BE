@@ -1,6 +1,6 @@
 const Notification = require('../models/notificationModel');
 
-const sendNotification = async ({ recipients, type, message }) => {
+const sendNotification = async ({ recipients, type, message, sender }) => {
     try {
         // Normalize recipients
         if (!recipients) {
@@ -19,6 +19,7 @@ const sendNotification = async ({ recipients, type, message }) => {
             recipients,
             type,
             message,
+            sender
         });
 
         await notification.save();
@@ -37,11 +38,16 @@ const getUserNotifications = async (req, res) => {
 
         const notifications = await Notification.find({
             recipients: userId
-        })
-            .sort({ createdAt: -1 })
+        }).sort({ createdAt: -1 })
+        .populate('sender', 'userName');
+
+        const unreadCount = notifications.filter(
+            (n) => !n.readBy.map(id => id.toString()).includes(userId)
+        ).length;
 
         res.status(200).json({
             count: notifications.length,
+            unreadCount,
             notifications
         });
     } catch (error) {
@@ -51,4 +57,34 @@ const getUserNotifications = async (req, res) => {
 };
 
 
-module.exports = { sendNotification ,getUserNotifications };
+const markNotificationAsRead = async (req, res) => {
+    const { userId, notificationIds } = req.body;
+
+    if (!userId || !Array.isArray(notificationIds) || notificationIds.length === 0) {
+        return res.status(400).json({ message: "userId and an array of notificationIds are required." });
+    }
+
+    try {
+        const result = await Notification.updateMany(
+            {
+                _id: { $in: notificationIds },
+                readBy: { $ne: userId } // only update if not already in readBy
+            },
+            {
+                $addToSet: { readBy: userId } // avoids duplicates
+            }
+        );
+
+        res.status(200).json({
+            message: "Notifications marked as read.",
+            modifiedCount: result.modifiedCount
+        });
+    } catch (error) {
+        console.error("Error marking notifications as read:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+
+module.exports = { sendNotification, getUserNotifications, markNotificationAsRead };
