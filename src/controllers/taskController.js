@@ -84,7 +84,7 @@ const createTask = async (req, res) => {
 
 const getAllTasksByUserId = async (req, res) => {
     try {
-        const { userId, page = 1, limit = 10, search = "", status } = req.query;
+        const { userId, page = 1, limit = 10, search = "", status, eventId } = req.query;
 
         const query = {
             $or: [
@@ -103,6 +103,14 @@ const getAllTasksByUserId = async (req, res) => {
 
         if (status) {
             query.status = status;
+        }
+
+        if (
+            eventId &&
+            eventId !== "all" &&
+            mongoose.Types.ObjectId.isValid(eventId)
+        ) {
+            query.eventId = new mongoose.Types.ObjectId(eventId);
         }
 
         const tasks = await Task.find(query)
@@ -134,8 +142,6 @@ const getAllTasksByUserId = async (req, res) => {
 };
   
   
-  
-
 const getTaskById = async (req, res) => {
     try {
         const { id } = req.params;

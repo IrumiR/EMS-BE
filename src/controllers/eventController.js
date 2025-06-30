@@ -465,20 +465,34 @@ const updateStatus = async (req, res) => {
   }
 };
 
+
 const getEventsDropdown = async (req, res) => {
   try {
-    const events = await Event.find(
-      { status: { $in: ["Approved", "In Progress", "Completed"] } },
-      { eventName: 1, eventId: 1 }
-    );
-    res.status(200).json({ message: "Events retrieved successfully", events });
+    const { clientId } = req.query;
+
+    const query = {
+      status: { $in: ["Approved", "In Progress", "Completed"] },
+    };
+
+    if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
+      query.clientId = new mongoose.Types.ObjectId(clientId);
+    }
+
+    const events = await Event.find(query, { eventName: 1 });
+
+    res.status(200).json({
+      message: "Events retrieved successfully",
+      events,
+    });
   } catch (error) {
     console.error("Error fetching events for dropdown:", error);
-    res
-      .status(500)
-      .json({ message: "Something went wrong", error: error.message });
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error.message,
+    });
   }
 };
+
 
 module.exports = {
   createEvent,
