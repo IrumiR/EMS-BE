@@ -1,6 +1,7 @@
 const Budget = require('../models/budgetModel');
 const mongoose = require('mongoose');
 const { Types } = mongoose;
+const { sendNotification } = require('./notificationController');
 
 const createBudget = async (req, res) => {
     try {
@@ -18,6 +19,13 @@ const createBudget = async (req, res) => {
         });
 
         const savedBudget = await newBudget.save();
+
+        await sendNotification({
+            recipients: [clientId],
+            type: 'budget',
+            message: `New budget for your event.`,
+            sender: createdBy
+        });
 
         res.status(201).json({ message: "Budget created successfully", budget: savedBudget });
     } catch (error) {

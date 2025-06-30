@@ -3,6 +3,7 @@ const Event = require('../models/eventModel');
 const User = require('../models/userModel');
 const Comment = require('../models/commentModel');
 const mongoose = require('mongoose');
+const { sendNotification } = require('./notificationController');
 
 const createTask = async (req, res) => {
     try {
@@ -40,6 +41,15 @@ const createTask = async (req, res) => {
         });
 
         const savedTask = await newTask.save();
+
+          const recipients = [...new Set([ ...assignees])];
+        
+            await sendNotification({
+              recipients,
+              type: 'task',
+              message: `New task "${taskName}" created`,
+              sender: createdBy
+            });
 
         // Step 2: Add this task to the associated event
         await Event.findByIdAndUpdate(
@@ -251,14 +261,12 @@ const getTaskCountsByStatus = async (req, res) => {
 
 const updateTask = async (req, res) => {
     try {
-        // Step 1: Update the task
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
 
         if (!updatedTask) {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        // Step 2: Update the related event's task reference
         await Event.updateOne(
             { "tasks.taskId": updatedTask._id },
             {
@@ -425,7 +433,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
             eventId: { $in: eventIds },
             startDate: { $gte: today },
         })
-            .select('taskName startDate endDate status priority eventId') // only selected fields
+            .select('taskName startDate endDate status priority eventId subTasks') // only selected fields
             .populate({
                 path: 'eventId',
                 select: 'eventName',
@@ -439,6 +447,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
             endDate: task.endDate,
             status: task.status,
             priority: task.priority,
+            subTasks: task.subTasks || [],
         }));
 
         return res.status(200).json({

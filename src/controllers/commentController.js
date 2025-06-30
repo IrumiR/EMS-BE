@@ -1,5 +1,6 @@
 const Comment = require('../models/commentModel');
 const Task = require('../models/taskModel');
+const Event = require('../models/eventModel');
 const { sendNotification } = require('./notificationController');
 const multer = require('multer');
 
@@ -28,10 +29,23 @@ const createComment = async (req, res) => {
 
         const savedComment = await newComment.save();
 
+        const parentTask = await Task.findById(taskId);
+        if (!parentTask) {
+            return res.status(404).json({ message: "Parent task not found" });
+        }
+
+        const parentEvent = await Event.findById(parentTask.eventId);
+        if (!parentEvent) {
+            return res.status(404).json({ message: "Parent event not found" });
+        }
+
+        const recipients = [...new Set([parentEvent.clientId, ...parentTask.assignees])];
+
         await sendNotification({
-            recipients: [createdBy],
+            recipients,
             type: 'comment',
             message: `New comment on your task.`,
+            sender: createdBy
         });
 
         await Task.findByIdAndUpdate(
@@ -126,6 +140,14 @@ const addReplyToComment = async (req, res) => {
         });
 
         const savedReply = await reply.save();
+
+        await sendNotification({
+            recipients: [parentComment.createdBy],
+            type: 'comment',
+            message: `New reply on your task.`,
+            sender: createdBy
+        });
+
 
         res.status(201).json({
             message: "Reply added successfully",
