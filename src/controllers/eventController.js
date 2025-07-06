@@ -279,15 +279,43 @@ const getEventCountsByStatus = async (req, res) => {
 
 const getEventReportData = async (req, res) => {
   try {
+    const { range } = req.query;
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0)); 
+    let fromDate, toDate;
+
+    if (range === "past_day") {
+      fromDate = new Date(today);
+      fromDate.setDate(fromDate.getDate() - 1); 
+      toDate = new Date(today); 
+    } else if (range === "past_week") {
+ 
+      toDate = new Date(today);
+      fromDate = new Date(today);
+      fromDate.setDate(fromDate.getDate() - 7);
+    } else if (range === "past_month") {
+
+      toDate = new Date(today);
+      fromDate = new Date(today);
+      fromDate.setDate(fromDate.getDate() - 30);
+    }
+
+    const filter = fromDate && toDate ? {
+      endDate: {
+        $gte: fromDate,
+        $lt: toDate,
+      }
+    } : {};
+
     const events = await Event.find(
-      {},
+      filter,
       "eventName eventType startDate endDate proposedLocation clientId createdAt"
     )
       .populate({
         path: "clientId",
-        select: "userName", // Only bring in userName from the User model
+        select: "userName",
       })
-      .sort({ createdAt: 1 }); // Oldest first
+      .sort({ createdAt: 1 });
 
     res.status(200).json({
       message: "Event report data retrieved successfully",
