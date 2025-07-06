@@ -35,7 +35,7 @@ const createBudget = async (req, res) => {
 
 const getAllBudgets = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "", clientId } = req.query;
+        const { page = 1, limit = 10, search = "", clientId, type } = req.query;
 
         const query = {
             $or: [
@@ -44,10 +44,23 @@ const getAllBudgets = async (req, res) => {
             ]
         };
 
-        // Add clientId to query if provided
+        // Filter by clientId if provided
         if (clientId) {
             query.$and = query.$and || [];
             query.$and.push({ clientId });
+        }
+
+        // Filter by budget type (Approved, Pending, Rejected)
+        if (type) {
+            query.$and = query.$and || [];
+
+            if (type === "Approved") {
+                query.$and.push({ isApproved: true });
+            } else if (type === "Rejected") {
+                query.$and.push({ isApproved: false });
+            } else if (type === "Pending") {
+                query.$and.push({ isApproved: null });
+            }
         }
 
         const budgets = await Budget.find(query)
@@ -72,7 +85,7 @@ const getAllBudgets = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
-}
+};
 
 const getBudgetReportData = async (req, res) => {
     try {

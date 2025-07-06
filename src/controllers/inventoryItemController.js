@@ -1,9 +1,21 @@
 const InventoryItem = require('../models/inventoryItemModel');
 const Event = require('../models/eventModel');
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+const uploadInventoryImage = upload.array('image');
 
 const createInventoryItem = async (req, res) => {
     try {
-        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, images, isExternal, assignedEvent, createdBy } = req.body;
+        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, isExternal, assignedEvent, createdBy } = req.body;
+
+        const images = req.files?.map(file => ({
+            data: file.buffer,
+            contentType: file.mimetype
+        })) || [];
+
 
         const newInventoryItem = new InventoryItem({
             itemName,
@@ -162,28 +174,63 @@ const getInventoryItemById = async (req, res) => {
 
 const updateInventoryItem = async (req, res) => {
     try {
-        const updatedInventoryItem = await InventoryItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { itemName, itemDescription, category, totalQuantity, price, condition, variations, isExternal, assignedEvent, createdBy } = req.body;
+
+        let images = [];
+        if (req.files && req.files.length > 0) {
+            images = req.files.map(file => ({
+                data: file.buffer,
+                contentType: file.mimetype
+            }));
+        }
+
+        const updateData = {
+            itemName,
+            itemDescription,
+            category,
+            totalQuantity,
+            price,
+            condition,
+            variations,
+            images,
+            isExternal,
+            assignedEvent,
+            createdBy
+        };
+
+        // If new images are provided, update them
+        if (images.length > 0) {
+            updateData.images = images;
+        }
+
+        const updatedInventoryItem = await InventoryItem.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        );
+
         if (!updatedInventoryItem) {
             return res.status(404).json({ message: "Inventory item not found" });
         }
+
         res.status(200).json({ message: "Inventory item updated successfully", inventoryItem: updatedInventoryItem });
     } catch (error) {
+        console.error("Error updating inventory item:", error);
         res.status(500).json({ message: "Something went wrong" });
     }
 };
+
 
 const deleteInventoryItem = async (req, res) => {
     try {
         const inventoryItemId = req.params.id;
 
-        // Step 1: Delete the inventory item
         const deletedInventoryItem = await InventoryItem.findByIdAndDelete(inventoryItemId);
 
         if (!deletedInventoryItem) {
             return res.status(404).json({ message: "Inventory item not found" });
         }
 
-        // Step 2: Remove the item from all events' inventoryItems array
         await Event.updateMany(
             { inventoryItems: inventoryItemId },
             { $pull: { inventoryItems: inventoryItemId } }
@@ -243,4 +290,4 @@ const createReservation = async (req, res) => {
 
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown,getInventoryItemCount, getInventoryItemById,getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, uploadInventoryImage };

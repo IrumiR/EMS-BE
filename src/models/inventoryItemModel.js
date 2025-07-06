@@ -16,17 +16,17 @@ const inventoryItemSchema = new mongoose.Schema({
     totalQuantity: {
         type: Number,
         required: true,
-        min: 0, // Ensures non-negative quantity
+        min: 0, 
     },
     remainingQuantity: {
         type: Number,
         required: true,
-        min: 0, // Ensures non-negative quantity
+        min: 0, 
     },
     price: {
         type: Number,
         required: true,
-        min: 0, // Ensures non-negative price
+        min: 0, 
     },
     condition: {
         type: [String],
@@ -36,21 +36,16 @@ const inventoryItemSchema = new mongoose.Schema({
         type: [String],
         required: false,
     },
-    images: {
-        type: [String],
-        required: false,
-    },
+    images: [
+        {
+            data: Buffer,
+            contentType: String
+        }
+    ],
     isExternal: {
         type: Boolean,
         default: true,
     },
-    assignedEvent: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Event',
-            required: false,
-        }
-    ],
     reservations: [
         {
             eventId: {

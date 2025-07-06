@@ -26,7 +26,7 @@ router.get('/client', verifyToken, authorizeRoles("admin", "manager", "team-memb
 });
 
 
-router.get('/all', verifyToken, authorizeRoles("admin", "manager"), getAllUsers);
+router.get('/all', verifyToken, authorizeRoles("admin", "manager", "team-member"), getAllUsers);
 router.get('/report', verifyToken, authorizeRoles("admin"), getUserReportData);
 router.get('/user-count-by-role', verifyToken, authorizeRoles("admin", "manager", "team-member"), getUserCountsByRole);
 router.get('/:id', verifyToken, authorizeRoles("admin", "manager", "team-member", "client"), getUserById);
