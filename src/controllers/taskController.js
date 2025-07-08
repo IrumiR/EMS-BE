@@ -531,6 +531,90 @@ const getTaskStatusCountsByClientId = async (req, res) => {
     }
 };
 
+const getMonthlyTasks = async (req, res) => {
+    try {
+        const { year, month, userId, clientId } = req.query;
+
+        if (!year || !month) {
+            return res.status(400).json({ message: "Year and month are required" });
+        }
+
+        const y = parseInt(year);
+        const m = parseInt(month) - 1;
+
+        const startOfMonth = new Date(y, m, 1);
+        const endOfMonth = new Date(y, m + 1, 0, 23, 59, 59, 999);
+        const daysInMonth = endOfMonth.getDate();
+
+        // Base query for tasks overlapping the month
+        const query = {
+            startDate: { $lte: endOfMonth },
+            endDate: { $gte: startOfMonth },
+        };
+
+        if (userId) {
+            query.assignees = { $in: [userId] };
+        }
+
+        if (clientId) {
+            const clientEvents = await Event.find({ clientId }, { _id: 1 });
+            const eventIds = clientEvents.map(event => event._id);
+            query.eventId = { $in: eventIds };
+        }
+
+        const tasks = await Task.find(query)
+            .select("taskName status priority startDate endDate eventId")
+            .populate({
+                path: "eventId",
+                select: "eventName",
+            });
+
+        // Build a date-to-task map
+        const taskMap = {};
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            taskMap[dateKey] = [];
+        }
+
+        tasks.forEach(task => {
+            const start = new Date(task.startDate);
+            const end = new Date(task.endDate);
+            const current = new Date(start);
+
+            while (current <= end) {
+                const currentYear = current.getFullYear();
+                const currentMonth = current.getMonth() + 1;
+
+                if (currentYear === y && currentMonth === parseInt(month)) {
+                    const dayKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(current.getDate()).padStart(2, "0")}`;
+                    if (taskMap[dayKey]) {
+                        taskMap[dayKey].push({
+                            taskName: task.taskName,
+                            status: task.status,
+                            priority: task.priority,
+                            startDate: task.startDate,
+                            endDate: task.endDate,
+                            eventName: task.eventId?.eventName || "Unknown",
+                        });
+                    }
+                }
+
+                current.setDate(current.getDate() + 1);
+            }
+        });
+
+        res.status(200).json({
+            message: "Monthly tasks retrieved successfully",
+            tasks: taskMap,
+        });
+
+    } catch (error) {
+        console.error("Error fetching monthly tasks:", error);
+        res.status(500).json({ message: "Something went wrong", error: error.message });
+    }
+  };
+
 
 
 module.exports = {
@@ -545,5 +629,6 @@ module.exports = {
     deleteTask,
     calculateAndUpdateEventProgress,
     getUpcomingTasksByClientId,
-    getTaskStatusCountsByClientId
+    getTaskStatusCountsByClientId,
+    getMonthlyTasks
 };
