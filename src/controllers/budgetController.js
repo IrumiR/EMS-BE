@@ -89,23 +89,36 @@ const getAllBudgets = async (req, res) => {
 
 const getBudgetReportData = async (req, res) => {
     try {
+        const { dateRange } = req.query;
+
+        const now = new Date();
+        let startDate;
+
+        if (dateRange === "pastDay") {
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - 1);
+        } else if (dateRange === "pastWeek") {
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - 7);
+        } else if (dateRange === "pastMonth") {
+            startDate = new Date(now);
+            startDate.setMonth(now.getMonth() - 1);
+        }
+
+        const filter = {};
+
+        if (startDate) {
+            filter.createdAt = { $gte: startDate };
+        }
+
         const budgets = await Budget.find(
-            { isApproved: true }, 
-            'eventId clientId totalAmount createdAt createdBy'
+            filter,
+            'eventId clientId totalAmount isApproved createdAt createdBy'
         )
-        .populate({
-            path: 'eventId',
-            select: 'eventName'
-        })
-        .populate({
-            path: 'clientId',
-            select: 'userName'
-        })
-        .populate({
-            path: 'createdBy',
-            select: 'userName'
-        })
-        .sort({ createdAt: 1 }); 
+            .populate({ path: 'eventId', select: 'eventName' })
+            .populate({ path: 'clientId', select: 'userName' })
+            .populate({ path: 'createdBy', select: 'userName' })
+            .sort({ createdAt: 1 });
 
         res.status(200).json({
             message: "Budget report data retrieved successfully",
@@ -116,6 +129,7 @@ const getBudgetReportData = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
+  
 
 const getBudgetCountsByStatus = async (req, res) => {
     try {
