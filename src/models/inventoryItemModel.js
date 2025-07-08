@@ -1,5 +1,25 @@
 const mongoose = require('mongoose');
 
+const ReservationSchema = new mongoose.Schema({
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
+        required: false
+    },
+    date: {
+        type: Date,
+        required: false
+    },
+    reservedQuantity: {
+        type: Number,
+        required: false,
+        min: 1
+    },
+}, {
+    timestamps: true
+});
+
+
 const inventoryItemSchema = new mongoose.Schema({
     itemName: {
         type: String,
@@ -16,17 +36,17 @@ const inventoryItemSchema = new mongoose.Schema({
     totalQuantity: {
         type: Number,
         required: true,
-        min: 0, 
+        min: 0,
     },
     remainingQuantity: {
         type: Number,
         required: true,
-        min: 0, 
+        min: 0,
     },
     price: {
         type: Number,
         required: true,
-        min: 0, 
+        min: 0,
     },
     condition: {
         type: [String],
@@ -46,24 +66,7 @@ const inventoryItemSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    reservations: [
-        {
-            eventId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Event',
-                required: false
-            },
-            date: {
-                type: Date,
-                required: false
-            },
-            reservedQuantity: {
-                type: Number,
-                required: false,
-                min: 1
-            }
-        }
-    ],
+    reservations: [ReservationSchema],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

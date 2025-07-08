@@ -288,6 +288,56 @@ const createReservation = async (req, res) => {
     }
 };
 
+const getAllReservations = async (req, res) => {
+    try {
+        const { dateRange } = req.query;
+
+        let startDate;
+        const now = new Date();
+
+        if (dateRange === "pastDay") {
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - 1); 
+        } else if (dateRange === "pastWeek") {
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - 7); 
+        } else if (dateRange === "pastMonth") {
+            startDate = new Date(now);
+            startDate.setMonth(now.getMonth() - 1); 
+        }
+
+        const itemsWithReservations = await InventoryItem.find({ "reservations.0": { $exists: true } })
+            .populate("reservations.eventId", "eventName");
+
+        const reservations = itemsWithReservations.flatMap(item =>
+            item.reservations
+                .filter(r => {
+                    if (!startDate) return true; 
+                    return r.createdAt && new Date(r.createdAt) >= startDate;
+                })
+                .map(r => ({
+                    itemId: item._id,
+                    itemName: item.itemName,
+                    date: r.date,
+                    reservedQuantity: r.reservedQuantity,
+                    event: r.eventId ? {
+                        _id: r.eventId._id,
+                        name: r.eventId.eventName
+                    } : null,
+                    createdAt: r.createdAt
+                }))
+        );
+
+        res.status(200).json({
+            message: "All reservation report data retrieved successfully",
+            reservations
+        });
+    } catch (error) {
+        console.error("Error fetching reservations:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+  
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, uploadInventoryImage };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, uploadInventoryImage, getAllReservations };
