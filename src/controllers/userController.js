@@ -41,9 +41,29 @@ const getAllUsers = async (req, res) => {
 
 const getUserReportData = async (req, res) => {
   try {
+    const { dateRange } = req.query;
+
+    let startDate;
+
+    const now = new Date();
+    if (dateRange === "pastDay") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 1);
+    } else if (dateRange === "pastWeek") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else if (dateRange === "pastMonth") {
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 1);
+    }
+
+    const filter = startDate
+      ? { createdAt: { $gte: startDate, $lte: now } }
+      : {};
+
     const users = await User.find(
-      {},
-      "userName email role contactNumber createdAt"
+      filter,
+      "userName email role contactNumber isActive createdAt"
     ).sort({ createdAt: 1 });
 
     res.status(200).json({
