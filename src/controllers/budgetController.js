@@ -5,13 +5,14 @@ const { sendNotification } = require('./notificationController');
 
 const createBudget = async (req, res) => {
     try {
-        const { eventId, clientId, isApproved, expenses, totalAmount, discount, remarks, createdBy } = req.body;
+        const { eventId, clientId, isApproved, expenses, inventoryItems, totalAmount, discount, remarks, createdBy } = req.body;
 
         const newBudget = new Budget({
             eventId,
             clientId,
             isApproved,
             expenses,
+            inventoryItems,
             totalAmount,
             discount,
             remarks,

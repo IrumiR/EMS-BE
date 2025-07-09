@@ -27,6 +27,29 @@ const budgetSchema = new mongoose.Schema({
             }
         }
     ],
+    inventoryItems: [
+        {
+            itemId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'InventoryItem',
+                required: true,
+            },
+            itemName: {
+                type: String,
+                required: true,
+            },
+            remainingQuantity: {
+                type: Number,
+                required: true,
+                min: 0,
+            },
+            price: {
+                type: Number,
+                required: true,
+                min: 0,
+            },
+        }
+    ],
     totalAmount: {
         type: Number,
         required: true,

@@ -87,16 +87,16 @@ const getAllInventoryItems = async (req, res) => {
 const getAllDropdown = async (req, res) => {
     console.log("Fetching all inventory items for dropdown");
     try {
-        // Query items and select only the required fields
         const dropdownItems = await InventoryItem.find(
-            { remainingQuantity: { $gt: 0 } }, // Only include items with remaining quantity
-            'itemName _id remainingQuantity' // Select only the required fields
-        ).sort({ itemName: 1 }); // Sort alphabetically by name
+            { remainingQuantity: { $gt: 0 } }, 
+            'itemName _id remainingQuantity price' 
+        ).sort({ itemName: 1 }); 
 
         const formattedItems = dropdownItems.map(item => ({
             itemId: item._id,
             itemName: item.itemName,
-            remainingQuantity: item.remainingQuantity
+            remainingQuantity: item.remainingQuantity,
+            price: item.price
         }));
 
         res.status(200).json({
