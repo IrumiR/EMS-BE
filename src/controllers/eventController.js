@@ -108,6 +108,7 @@ const getAllEvents = async (req, res) => {
       .populate("clientId", "userName")
       .populate("inventoryItems", "itemName")
       .populate("createdBy", "userName")
+      .populate("assignees", "userName")
       .sort({ createdAt: -1 });
 
     const totalCount = await Event.countDocuments(query);
@@ -400,6 +401,7 @@ const getEventById = async (req, res) => {
     const event = await Event.findById(id)
       .populate("clientId", "userName")
       .populate("inventoryItems", "itemName")
+      .populate("assignees", "userName")
       .populate("createdBy", "userName");
 
     if (!event) {

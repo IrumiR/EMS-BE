@@ -9,7 +9,7 @@ const uploadInventoryImage = upload.array('image');
 
 const createInventoryItem = async (req, res) => {
     try {
-        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, isExternal, assignedEvent, createdBy } = req.body;
+        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, isExternal, isSingleUse, assignedEvent, createdBy } = req.body;
 
         const images = req.files?.map(file => ({
             data: file.buffer,
@@ -28,6 +28,7 @@ const createInventoryItem = async (req, res) => {
             variations,
             images,
             isExternal,
+            isSingleUse,
             assignedEvent,
             createdBy
         });
@@ -174,7 +175,7 @@ const getInventoryItemById = async (req, res) => {
 
 const updateInventoryItem = async (req, res) => {
     try {
-        const { itemName, itemDescription, category, totalQuantity, price, condition, variations, isExternal, assignedEvent, createdBy } = req.body;
+        const { itemName, itemDescription, category, totalQuantity, price, condition, variations, isExternal, isSingleUse, assignedEvent, createdBy } = req.body;
 
         let images = [];
         if (req.files && req.files.length > 0) {
@@ -194,6 +195,7 @@ const updateInventoryItem = async (req, res) => {
             variations,
             images,
             isExternal,
+            isSingleUse,
             assignedEvent,
             createdBy
         };

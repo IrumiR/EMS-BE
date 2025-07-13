@@ -239,6 +239,7 @@ const getAssigneesDropdown = async (req, res) => {
   try {
     const assignees = await User.find({
       role: { $in: ["team-member", "manager"] },
+      isActive: true,
     }).select("userName");
     const formattedAssignees = assignees.map((assignee) => ({
       userName: assignee.userName,

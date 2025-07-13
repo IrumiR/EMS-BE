@@ -66,6 +66,10 @@ const inventoryItemSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    isSingleUse: {
+        type: Boolean,
+        default: false,
+    },
     reservations: [ReservationSchema],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
