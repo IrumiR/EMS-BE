@@ -1,5 +1,5 @@
 const express = require('express');
-const { createInventoryItem, getAllInventoryItems, getInventoryItemById, getInventoryItemCount, getAllDropdown, updateInventoryItem, deleteInventoryItem, createReservation, getAllReservations,getInventoryReportData, uploadInventoryImage } = require('../controllers/inventoryItemController');
+const { createInventoryItem, getAllInventoryItems, getInventoryItemById, getInventoryItemCount, getAllDropdown, updateInventoryItem, deleteInventoryItem, createReservation, ReserveSingleUseItems, getAllReservations,getInventoryReportData, uploadInventoryImage } = require('../controllers/inventoryItemController');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware');
 const router = express.Router();
@@ -14,6 +14,7 @@ router.get("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"
 router.put("/:id", verifyToken, authorizeRoles("admin", "manager", "team-member"), uploadInventoryImage, updateInventoryItem);
 router.delete("/:id", verifyToken, authorizeRoles("admin", "manager"), deleteInventoryItem);
 router.post("/reserve", verifyToken, authorizeRoles("admin", "manager", "team-member"), createReservation);
+router.post("/reserve-single-use", verifyToken, authorizeRoles("admin", "manager", "team-member"), ReserveSingleUseItems);
 
 
 module.exports = router;

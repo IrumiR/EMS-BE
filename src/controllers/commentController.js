@@ -24,7 +24,7 @@ const createComment = async (req, res) => {
             taskId,
             commentText,
             createdBy,
-            images // Add images array to the comment
+            images 
         });
 
         const savedComment = await newComment.save();
@@ -39,14 +39,27 @@ const createComment = async (req, res) => {
             return res.status(404).json({ message: "Parent event not found" });
         }
 
-        const recipients = [...new Set([parentEvent.clientId, ...parentTask.assignees])];
+        const clientId = parentEvent.clientId?.toString();
+        const assigneeIds = parentTask.assignees?.map((a) =>
+            typeof a === "string" ? a : a.assigneeId || a
+        ).map(String) || [];
 
-        await sendNotification({
-            recipients,
-            type: 'comment',
-            message: `New comment on your task.`,
-            sender: createdBy
-        });
+        const isClient = createdBy === clientId;
+
+        const recipients = isClient
+            ? assigneeIds.filter((id) => id !== createdBy)
+            : clientId && clientId !== createdBy
+                ? [clientId]
+                : [];
+
+        if (recipients.length > 0) {
+            await sendNotification({
+                recipients: [...new Set(recipients)],
+                type: "comment",
+                message: `New comment on your task "${parentTask.taskName}".`,
+                sender: createdBy,
+            });
+        }
 
         await Task.findByIdAndUpdate(
             taskId,
@@ -115,7 +128,6 @@ const getCommentsByTaskId = async (req, res) => {
 };
   
 
-
 const addReplyToComment = async (req, res) => {
     try {
         const { commentId } = req.params; 
@@ -131,6 +143,9 @@ const addReplyToComment = async (req, res) => {
             return res.status(404).json({ message: "Parent comment not found" });
         }
 
+        const task = await Task.findById(parentComment.taskId);
+        const taskName = task?.taskName || "a task";
+
         const reply = new Comment({
             taskId: parentComment.taskId,
             commentText: replyText,
@@ -144,7 +159,7 @@ const addReplyToComment = async (req, res) => {
         await sendNotification({
             recipients: [parentComment.createdBy],
             type: 'comment',
-            message: `New reply on your task.`,
+            message: `New reply on your task ${taskName}.`,
             sender: createdBy
         });
 

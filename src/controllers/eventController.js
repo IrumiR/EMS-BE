@@ -51,14 +51,23 @@ const createEvent = async (req, res) => {
 
     const savedEvent = await newEvent.save();
     
-    const recipients = [...new Set([clientId, ...assignees])];
+    if (clientId) {
+      await sendNotification({
+        recipients: [clientId],
+        type: "event",
+        message: `New event "${eventName}" created`,
+        sender: createdBy,
+      });
+    }
 
-    await sendNotification({
-      recipients,
-      type: 'event',
-      message: `New event "${eventName}" created`,
-      sender: createdBy
-    });
+    if (assignees && assignees.length > 0) {
+      await sendNotification({
+        recipients: assignees,
+        type: "event",
+        message: `You're assigned to event "${eventName}"`,
+        sender: createdBy,
+      });
+    }
 
     res
       .status(201)
@@ -427,6 +436,17 @@ const updateEvent = async (req, res) => {
     if (!updatedEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
+
+    const { eventName, clientId, assignees, createdBy } = updatedEvent;
+    const recipients = [...new Set([clientId, ...assignees])];
+
+    await sendNotification({
+      recipients,
+      type: 'event',
+      message: `Details of event ${eventName} have been updated`,
+      sender: createdBy
+    });
+
     res
       .status(200)
       .json({ message: "Event updated successfully", event: updatedEvent });
@@ -468,11 +488,10 @@ const deleteEvent = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
-    // Changed from _id to id to match your route parameter
     const id = req.params.id;
     const { status } = req.body;
 
-    console.log("Received ID:", id); // Add logging to see what ID is received
+    console.log("Received ID:", id); 
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid event ID format" });
@@ -486,6 +505,17 @@ const updateStatus = async (req, res) => {
     if (!updatedEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
+
+    const { eventName, clientId, assignees, createdBy } = updatedEvent;
+    const recipients = [...new Set([clientId, ...assignees])];
+
+    await sendNotification({
+      recipients,
+      type: 'event',
+      message: `Status of ${eventName} has been updated to ${status}`,
+      sender: createdBy
+    });
+
     res.status(200).json({ message: "Event status updated successfully" });
   } catch (error) {
     console.error("Error updating event status:", error);

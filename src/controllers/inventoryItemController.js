@@ -290,6 +290,49 @@ const createReservation = async (req, res) => {
     }
 };
 
+const ReserveSingleUseItems = async (req, res) => {
+    try {
+        const { itemId, eventId, date, reservedQuantity } = req.body;
+
+        if (!itemId || !eventId || !reservedQuantity) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const item = await InventoryItem.findById(itemId);
+        if (!item) {
+            return res.status(404).json({ message: "Inventory item not found" });
+        }
+
+        if (!item.isSingleUse) {
+            return res.status(400).json({ message: "Reservations are only allowed for single-use items." });
+        }
+
+        const availableQuantity = item.remainingQuantity;
+
+        if (reservedQuantity > availableQuantity) {
+            return res.status(400).json({ message: `Only ${availableQuantity} item(s) are available` });
+        }
+
+        // Add reservation
+        item.reservations.push({
+            eventId,
+            date,
+            reservedQuantity
+        });
+
+        // Reduce remaining quantity
+        item.remainingQuantity -= reservedQuantity;
+
+        await item.save();
+
+        res.status(201).json({ message: "Reservation created successfully", item });
+    } catch (error) {
+        console.error("Error creating reservation:", error);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
 const getAllReservations = async (req, res) => {
     try {
         const { dateRange } = req.query;
@@ -326,6 +369,8 @@ const getAllReservations = async (req, res) => {
                         _id: r.eventId._id,
                         name: r.eventId.eventName
                     } : null,
+                    isSingleUse: item.isSingleUse,
+                    isExternal: item.isExternal,
                     createdAt: r.createdAt
                 }))
         );
@@ -342,4 +387,4 @@ const getAllReservations = async (req, res) => {
   
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, uploadInventoryImage, getAllReservations };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, ReserveSingleUseItems, uploadInventoryImage, getAllReservations };

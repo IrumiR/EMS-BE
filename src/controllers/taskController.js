@@ -42,14 +42,31 @@ const createTask = async (req, res) => {
 
         const savedTask = await newTask.save();
 
-          const recipients = [...new Set([ ...assignees])];
-        
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const clientId = event.clientId;
+
+        if (clientId) {
             await sendNotification({
-              recipients,
-              type: 'task',
-              message: `New task "${taskName}" created`,
-              sender: createdBy
+                recipients: [clientId],
+                type: "task",
+                message: `New task ${taskName} created for event ${event.eventName}`,
+                sender: createdBy,
             });
+        }
+
+        if (assignees && assignees.length > 0) {
+            await sendNotification({
+                recipients: assignees,
+                type: "task",
+                message: `You're assigned to task ${taskName} for event ${event.eventName}`,
+                sender: createdBy,
+            });
+        }
+
 
         // Step 2: Add this task to the associated event
         await Event.findByIdAndUpdate(
@@ -286,6 +303,23 @@ const updateTask = async (req, res) => {
 
         await calculateAndUpdateEventProgress(updatedTask.eventId);
 
+        const event = await Event.findById(updatedTask.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const sender = await User.findById(updatedTask.createdBy);
+        const clientId = event.clientId;
+
+        if (clientId) {
+            await sendNotification({
+                recipients: [clientId],
+                type: "task",
+                message: `Details of Task ${updatedTask.taskName} has been updated`,
+                sender
+            });
+        }
+
         res.status(200).json({
             message: "Task updated successfully",
             task: updatedTask
@@ -311,6 +345,24 @@ const updateStatus = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        const event = await Event.findById(updatedTask.eventId);
+
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const clientId = event.clientId;
+        const sender = await User.findById(updatedTask.createdBy);
+        
+        if (clientId) {
+            await sendNotification({
+                recipients: [clientId],
+                type: "task",
+                message: `Status of task "${updatedTask.taskName}" has been updated to ${status}`,
+                sender
+            });
+        }
+
          await calculateAndUpdateEventProgress(updatedTask.eventId);
 
         res.status(200).json({ message: "Task status updated successfully", task: updatedTask });
@@ -333,6 +385,24 @@ const updatePriority = async (req, res) => {
 
         if (!updatedTask) {
             return res.status(404).json({ message: "Task not found" });
+        }
+
+        const event = await Event.findById(updatedTask.eventId);
+
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const clientId = event.clientId;
+        const sender = await User.findById(updatedTask.createdBy);
+
+        if (clientId) {
+            await sendNotification({
+                recipients: [clientId],
+                type: "task",
+                message: `Priority of task "${updatedTask.taskName}" has been updated to ${priority}`,
+                sender
+            });
         }
 
         res.status(200).json({ message: "Task priority updated successfully", task: updatedTask });

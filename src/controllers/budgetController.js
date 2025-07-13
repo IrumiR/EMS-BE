@@ -1,4 +1,6 @@
 const Budget = require('../models/budgetModel');
+const Event = require('../models/eventModel');
+const User = require('../models/userModel');
 const mongoose = require('mongoose');
 const { Types } = mongoose;
 const { sendNotification } = require('./notificationController');
@@ -21,10 +23,15 @@ const createBudget = async (req, res) => {
 
         const savedBudget = await newBudget.save();
 
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
         await sendNotification({
             recipients: [clientId],
             type: 'budget',
-            message: `New budget for your event.`,
+            message: `New budget created for event ${event.eventName}.`,
             sender: createdBy
         });
 
@@ -130,7 +137,7 @@ const getBudgetReportData = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
-  
+
 
 const getBudgetCountsByStatus = async (req, res) => {
     try {
@@ -189,7 +196,7 @@ const getBudgetCountsByStatus = async (req, res) => {
     } catch (error) {
         console.error("Error fetching budget status counts:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
-      }
+    }
 };
 
 
@@ -231,6 +238,21 @@ const updateBudget = async (req, res) => {
             return res.status(404).json({ message: "Budget not found" });
         }
 
+        const event = await Event.findById(updatedBudget.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const sender = await User.findById(updatedBudget.createdBy);
+        const clientId = event.clientId;
+
+        await sendNotification({
+            recipients: [clientId],
+            type: 'budget',
+            message: `Budget has been updated for event ${event.eventName}.`,
+            sender
+        });
+
         res.status(200).json({ message: "Budget updated successfully", budget: updatedBudget });
     } catch (error) {
         res.status(500).json({ message: "Something went wrong", error: error.message });
@@ -266,7 +288,6 @@ const updateStatus = async (req, res) => {
             return res.status(400).json({ message: "Invalid budget ID" });
         }
 
-        // Require remarks for both approval and rejection
         if ((isApproved === true || isApproved === false) && !remarks) {
             return res.status(400).json({ message: "Remarks are required when approving or rejecting a budget" });
         }
@@ -298,6 +319,20 @@ const updateStatus = async (req, res) => {
         if (!updatedBudget) {
             return res.status(404).json({ message: "Budget not found" });
         }
+
+        const event = await Event.findById(updatedBudget.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+        const createdBy = updatedBudget.createdBy;
+        const clientId = event.clientId;
+
+        await sendNotification({
+            recipients: createdBy,
+            type: 'budget',
+            message: `Budget is ${updateData.status} for event ${event.eventName}.`,
+            sender: [clientId]
+        });
 
         res.status(200).json({
             message: "Budget status updated successfully",
