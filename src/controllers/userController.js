@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const Event = require("../models/eventModel");
 const bcrypt = require("bcryptjs");
 
 const getAllUsers = async (req, res) => {
@@ -256,6 +257,42 @@ const getAssigneesDropdown = async (req, res) => {
   }
 };
 
+const getEventAssigneesDropdown = async (req, res) => {
+  const { eventId } = req.params;
+
+  if (!eventId) {
+    return res.status(400).json({ message: "Event ID is required" });
+  }
+
+  try {
+    const event = await Event.findById(eventId).select("assignees");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const assignees = await User.find({
+      _id: { $in: event.assignees },
+      role: { $in: ["team-member", "manager"] },
+      isActive: true,
+    }).select("userName");
+
+    const formattedAssignees = assignees.map((assignee) => ({
+      userName: assignee.userName,
+      userId: assignee._id.toString(),
+    }));
+
+    res.status(200).json({
+      message: "Assignees retrieved successfully",
+      assignees: formattedAssignees,
+    });
+  } catch (error) {
+    console.error("Error fetching dropdown assignees:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -265,5 +302,6 @@ module.exports = {
   deactivateUser,
   getClientDropdown,
   getAssigneesDropdown,
+  getEventAssigneesDropdown,
   getUserCountsByRole
 };
