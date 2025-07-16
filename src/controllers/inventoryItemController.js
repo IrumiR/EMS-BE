@@ -384,6 +384,16 @@ const getAllReservations = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
+
+//get all dropdown exclude single use items with 0 quantity, put inside the line 91 bracket
+// {
+//     $or: [
+//         { remainingQuantity: { $gt: 0 } },
+//         {
+//             isSingleUse: false
+//         }
+//     ]
+// }
   
 
 

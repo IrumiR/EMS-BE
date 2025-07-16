@@ -23,7 +23,6 @@ const createTask = async (req, res) => {
             createdBy
         } = req.body;
 
-        // Step 1: Create and save the new task
         const newTask = new Task({
             taskName,
             taskDescription,
@@ -48,10 +47,14 @@ const createTask = async (req, res) => {
         }
 
         const clientId = event.clientId;
+        const adminUsers = await User.find({ role: 'admin' }, '_id');
+        const adminIds = adminUsers.map(admin => admin._id.toString());
 
-        if (clientId) {
+        const notifyAdminsAndClient = [...adminIds];
+        if (clientId) notifyAdminsAndClient.push(clientId); 
+        {
             await sendNotification({
-                recipients: [clientId],
+                recipients: notifyAdminsAndClient,
                 type: "task",
                 message: `New task ${taskName} created for event ${event.eventName}`,
                 sender: createdBy,
@@ -157,8 +160,8 @@ const getAllTasksByUserId = async (req, res) => {
         });
     }
 };
-  
-  
+
+
 const getTaskById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -284,19 +287,30 @@ const getTaskCountsByStatus = async (req, res) => {
 
 const updateTask = async (req, res) => {
     try {
-        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const taskId = req.params.id;
 
-        if (!updatedTask) {
+        const originalTask = await Task.findById(taskId);
+        if (!originalTask) {
             return res.status(404).json({ message: "Task not found" });
         }
+
+        const oldAssigneeIds = originalTask.assignees.map(id => id.toString());
+
+        const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, { new: true });
+
+        if (!updatedTask) {
+            return res.status(404).json({ message: "Task not found after update" });
+        }
+
+        const newAssigneeIds = updatedTask.assignees.map(id => id.toString());
 
         await Event.updateOne(
             { "tasks.taskId": updatedTask._id },
             {
                 $set: {
                     "tasks.$.taskName": updatedTask.taskName,
-                    "tasks.$.assigneeId": updatedTask.assignees?.[0]?.assigneeId || null,
-                    "tasks.$.commentId": updatedTask.comments?.[0]?.commentId || null
+                    "tasks.$.assigneeId": newAssigneeIds[0] || null,
+                    "tasks.$.commentId": updatedTask.comments?.[0] || null,
                 }
             }
         );
@@ -309,26 +323,82 @@ const updateTask = async (req, res) => {
         }
 
         const sender = await User.findById(updatedTask.createdBy);
-        const clientId = event.clientId;
+        const clientId = event.clientId?.toString();
 
-        if (clientId) {
+        const adminUsers = await User.find({ role: 'admin' }, '_id');
+        const adminIds = adminUsers.map(admin => admin._id.toString());
+
+        const removedIds = oldAssigneeIds.filter(id => !newAssigneeIds.includes(id));
+        const addedIds = newAssigneeIds.filter(id => !oldAssigneeIds.includes(id));
+
+        const removedAssignees = await User.find({ _id: { $in: removedIds } }, 'userName');
+        const addedAssignees = await User.find({ _id: { $in: addedIds } }, 'userName');
+
+        for (const user of removedAssignees) {
             await sendNotification({
-                recipients: [clientId],
-                type: "task",
-                message: `Details of Task ${updatedTask.taskName} has been updated`,
-                sender
+                recipients: [user._id],
+                type: 'task',
+                message: `You're removed from the task "${updatedTask.taskName}"`,
+                sender,
+            });
+
+            const notifyAdminsAndClient = [...adminIds];
+            if (clientId) notifyAdminsAndClient.push(clientId);
+            {
+                await sendNotification({
+                    recipients: notifyAdminsAndClient,
+                    type: 'task',
+                    message: `${user.userName} has been removed from the task "${updatedTask.taskName}"`,
+                    sender,
+                });
+            }
+        }
+
+        for (const user of addedAssignees) {
+            await sendNotification({
+                recipients: [user._id],
+                type: 'task',
+                message: `You're assigned to the task "${updatedTask.taskName}"`,
+                sender,
+            });
+
+            const notifyAdminsAndClient = [...adminIds];
+            if (clientId) notifyAdminsAndClient.push(clientId);
+            {
+                await sendNotification({
+                    recipients: notifyAdminsAndClient,
+                    type: 'task',
+                    message: `${user.userName} has been assigned to the task "${updatedTask.taskName}"`,
+                    sender,
+                });
+            }
+        }
+
+        const ignoredFields = ['assignees', '__v', 'updatedAt', 'createdAt', '_id'];
+        const otherChanges = Object.keys(req.body).some(key => !ignoredFields.includes(key));
+
+        if (otherChanges) {
+            const recipients = [...new Set([...newAssigneeIds, clientId, ...adminIds].filter(Boolean))];
+            await sendNotification({
+                recipients,
+                type: 'task',
+                message: `Details of task "${updatedTask.taskName}" have been updated`,
+                sender,
             });
         }
 
         res.status(200).json({
             message: "Task updated successfully",
-            task: updatedTask
+            task: updatedTask,
         });
+
     } catch (error) {
         console.error("Error updating task:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
+
 
 const updateStatus = async (req, res) => {
     try {
@@ -351,19 +421,39 @@ const updateStatus = async (req, res) => {
             return res.status(404).json({ message: "Associated event not found" });
         }
 
-        const clientId = event.clientId;
+        const clientId = event.clientId?.toString();
         const sender = await User.findById(updatedTask.createdBy);
-        
+        const assigneeIds = updatedTask.assignees.map(id => id.toString());
+
         if (clientId) {
             await sendNotification({
                 recipients: [clientId],
                 type: "task",
                 message: `Status of task "${updatedTask.taskName}" has been updated to ${status}`,
-                sender
+                sender,
             });
         }
 
-         await calculateAndUpdateEventProgress(updatedTask.eventId);
+        await calculateAndUpdateEventProgress(updatedTask.eventId);
+
+        const now = new Date();
+        const isOverdue = updatedTask.status === "In Progress" && updatedTask.endDate < now;
+
+        if (isOverdue) {
+            const adminUsers = await User.find({ role: 'admin' }, '_id');
+            const adminIds = adminUsers.map(admin => admin._id.toString());
+
+            const recipients = [...new Set([clientId, ...assigneeIds, ...adminIds].filter(Boolean))];
+
+            if (recipients.length > 0) {
+                await sendNotification({
+                    recipients,
+                    type: 'task',
+                    message: `Task "${updatedTask.taskName}" is overdue.`,
+                    sender,
+                });
+            }
+        }
 
         res.status(200).json({ message: "Task status updated successfully", task: updatedTask });
     } catch (error) {
@@ -371,6 +461,7 @@ const updateStatus = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
+
 
 const updatePriority = async (req, res) => {
     try {
@@ -449,7 +540,7 @@ const deleteTask = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
-  
+
 const calculateAndUpdateEventProgress = async (eventId) => {
     try {
         const tasks = await Task.find({ eventId });
@@ -534,7 +625,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
         console.error('Error fetching upcoming tasks:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
-  };
+};
 
 const getTaskStatusCountsByClientId = async (req, res) => {
     const { clientId } = req.params;
@@ -683,7 +774,7 @@ const getMonthlyTasks = async (req, res) => {
         console.error("Error fetching monthly tasks:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
-  };
+};
 
 
 

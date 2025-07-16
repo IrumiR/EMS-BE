@@ -428,32 +428,86 @@ const getEventById = async (req, res) => {
 
 const updateEvent = async (req, res) => {
   try {
-    const updatedEvent = await Event.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    if (!updatedEvent) {
+    const eventId = req.params.id;
+
+    const existingEvent = await Event.findById(eventId);
+    if (!existingEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    const { eventName, clientId, assignees, createdBy } = updatedEvent;
-    const recipients = [...new Set([clientId, ...assignees])];
+    const oldAssignees = existingEvent.assignees.map(id => id.toString());
 
-    await sendNotification({
-      recipients,
-      type: 'event',
-      message: `Details of event ${eventName} have been updated`,
-      sender: createdBy
-    });
+    const updatedEvent = await Event.findByIdAndUpdate(eventId, req.body, { new: true }).populate('assignees', 'name');
+    const { eventName, clientId, assignees: newAssignees, createdBy } = updatedEvent;
+    const newAssigneesStr = newAssignees.map(user => user._id.toString());
 
-    res
-      .status(200)
-      .json({ message: "Event updated successfully", event: updatedEvent });
+
+    const removedAssigneeIds = oldAssignees.filter(id => !newAssigneesStr.includes(id));
+    const addedAssigneeIds = newAssigneesStr.filter(id => !oldAssignees.includes(id));
+
+
+    const removedAssignees = await User.find({ _id: { $in: removedAssigneeIds } }, 'userName');
+    const addedAssignees = await User.find({ _id: { $in: addedAssigneeIds } }, 'userName');
+
+    for (const user of removedAssignees) {
+      await sendNotification({
+        recipients: [user._id],
+        type: 'event',
+        message: `You're removed from the event "${eventName}"`,
+        sender: createdBy
+      });
+
+      if (clientId) {
+        await sendNotification({
+          recipients: [clientId],
+          type: 'event',
+          message: `${user.userName} has been removed from the event "${eventName}"`,
+          sender: createdBy
+        });
+      }
+    }
+
+
+    for (const user of addedAssignees) {
+      await sendNotification({
+        recipients: [user._id],
+        type: 'event',
+        message: `You're assigned to the event "${eventName}"`,
+        sender: createdBy
+      });
+
+      if (clientId) {
+        await sendNotification({
+          recipients: [clientId],
+          type: 'event',
+          message: `${user.userName} has been added to the event "${eventName}"`,
+          sender: createdBy
+        });
+      }
+    }
+
+    const ignoredFields = ['assignees', '__v', 'updatedAt', 'createdAt', '_id'];
+    const otherChanges = Object.keys(req.body).some(key => !ignoredFields.includes(key));
+
+    if (otherChanges) {
+      const generalRecipients = [...new Set([clientId?.toString(), ...newAssigneesStr])];
+      await sendNotification({
+        recipients: generalRecipients,
+        type: 'event',
+        message: `Details of event "${eventName}" have been updated`,
+        sender: createdBy
+      });
+    }
+
+    res.status(200).json({ message: "Event updated successfully", event: updatedEvent });
+
   } catch (error) {
+    console.error("Error updating event:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };
+
+
 
 const deleteEvent = async (req, res) => {
   try {
