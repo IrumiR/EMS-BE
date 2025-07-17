@@ -70,6 +70,10 @@ const inventoryItemSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    isLeased: {
+        type: Boolean,
+        default: false,
+    },
     reservations: [ReservationSchema],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,

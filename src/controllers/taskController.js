@@ -134,6 +134,7 @@ const getAllTasksByUserId = async (req, res) => {
         }
 
         const tasks = await Task.find(query)
+            .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate("eventId", "eventName")
@@ -204,6 +205,7 @@ const getAllTasksByEventId = async (req, res) => {
         }
 
         const tasks = await Task.find(query)
+            .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate('assignees', 'userName')

@@ -508,7 +508,6 @@ const updateEvent = async (req, res) => {
 };
 
 
-
 const deleteEvent = async (req, res) => {
   try {
     const eventId = req.params.id;
@@ -585,14 +584,18 @@ const getEventsDropdown = async (req, res) => {
     const { clientId } = req.query;
 
     const query = {
-      status: { $in: ["Approved", "In Progress", "Completed"] },
+      status: { $in: ["Approved", "In Progress"] },
     };
 
     if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
       query.clientId = new mongoose.Types.ObjectId(clientId);
     }
 
-    const events = await Event.find(query, { eventName: 1 });
+    const events = await Event.find(query, {
+      eventName: 1,
+      startDate: 1,
+      endDate: 1,
+    });
 
     res.status(200).json({
       message: "Events retrieved successfully",
