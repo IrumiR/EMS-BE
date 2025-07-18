@@ -50,15 +50,19 @@ const createEvent = async (req, res) => {
     });
 
     const savedEvent = await newEvent.save();
+
+     const adminUsers = await User.find({ role: 'admin' }, '_id');
+    const adminIds = adminUsers.map(admin => admin._id.toString());
     
-    if (clientId) {
-      await sendNotification({
-        recipients: [clientId],
-        type: "event",
-        message: `New event "${eventName}" created`,
+    const notifyAdminsAndClient = [...adminIds];
+    if (clientId) notifyAdminsAndClient.push(clientId);
+
+    await sendNotification({
+      recipients: notifyAdminsAndClient,
+      type: "event",
+      message: `New event "${eventName}" created`,
         sender: createdBy,
       });
-    }
 
     if (assignees && assignees.length > 0) {
       await sendNotification({
@@ -291,27 +295,30 @@ const getEventReportData = async (req, res) => {
   try {
     const { range } = req.query;
     const now = new Date();
-    const today = new Date(now.setHours(0, 0, 0, 0)); 
+    const today = new Date(now.setHours(0, 0, 0, 0));
     let fromDate, toDate;
 
     if (range === "past_day") {
       fromDate = new Date(today);
-      fromDate.setDate(fromDate.getDate() - 1); 
-      toDate = new Date(today); 
-    } else if (range === "past_week") {
- 
+      fromDate.setDate(fromDate.getDate() - 1);
       toDate = new Date(today);
+    } else if (range === "past_week") {
       fromDate = new Date(today);
       fromDate.setDate(fromDate.getDate() - 7);
-    } else if (range === "past_month") {
-
       toDate = new Date(today);
+    } else if (range === "past_month") {
       fromDate = new Date(today);
       fromDate.setDate(fromDate.getDate() - 30);
+      toDate = new Date(today);
+    }
+
+    // Include the full toDate day
+    if (toDate) {
+      toDate.setDate(toDate.getDate() + 1);
     }
 
     const filter = fromDate && toDate ? {
-      endDate: {
+      createdAt: {
         $gte: fromDate,
         $lt: toDate,
       }
@@ -449,6 +456,9 @@ const updateEvent = async (req, res) => {
     const removedAssignees = await User.find({ _id: { $in: removedAssigneeIds } }, 'userName');
     const addedAssignees = await User.find({ _id: { $in: addedAssigneeIds } }, 'userName');
 
+     const adminUsers = await User.find({ role: 'admin' }, '_id');
+    const adminIds = adminUsers.map(admin => admin._id.toString());
+
     for (const user of removedAssignees) {
       await sendNotification({
         recipients: [user._id],
@@ -457,9 +467,11 @@ const updateEvent = async (req, res) => {
         sender: createdBy
       });
 
-      if (clientId) {
+      const notifyAdminsAndClient = [...adminIds];
+      if (clientId) notifyAdminsAndClient.push(clientId); 
+        {
         await sendNotification({
-          recipients: [clientId],
+          recipients: notifyAdminsAndClient,
           type: 'event',
           message: `${user.userName} has been removed from the event "${eventName}"`,
           sender: createdBy
@@ -476,9 +488,11 @@ const updateEvent = async (req, res) => {
         sender: createdBy
       });
 
-      if (clientId) {
+      const notifyAdminsAndClient = [...adminIds];
+      if (clientId) notifyAdminsAndClient.push(clientId); 
+        {
         await sendNotification({
-          recipients: [clientId],
+          recipients: notifyAdminsAndClient,
           type: 'event',
           message: `${user.userName} has been added to the event "${eventName}"`,
           sender: createdBy
@@ -490,7 +504,7 @@ const updateEvent = async (req, res) => {
     const otherChanges = Object.keys(req.body).some(key => !ignoredFields.includes(key));
 
     if (otherChanges) {
-      const generalRecipients = [...new Set([clientId?.toString(), ...newAssigneesStr])];
+      const generalRecipients = [...new Set([clientId?.toString(), ...newAssigneesStr, ...adminIds])];
       await sendNotification({
         recipients: generalRecipients,
         type: 'event',

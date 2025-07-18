@@ -176,7 +176,7 @@ const getInventoryItemById = async (req, res) => {
 
 const updateInventoryItem = async (req, res) => {
     try {
-        const { itemName, itemDescription, category, totalQuantity, price, condition, variations, isExternal, isSingleUse, isLeased, assignedEvent, createdBy } = req.body;
+        const { itemName, itemDescription, category, totalQuantity, remainingQuantity, price, condition, variations, isExternal, isSingleUse, isLeased, assignedEvent, createdBy } = req.body;
 
         let images = [];
         if (req.files && req.files.length > 0) {
@@ -191,6 +191,7 @@ const updateInventoryItem = async (req, res) => {
             itemDescription,
             category,
             totalQuantity,
+            remainingQuantity,
             price,
             condition,
             variations,
