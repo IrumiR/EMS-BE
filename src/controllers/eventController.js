@@ -1,10 +1,8 @@
 const Event = require("../models/eventModel");
-const InventoryItem = require("../models/inventoryItemModel");
-const Client = require("../models/clientsModel");
 const User = require("../models/userModel");
-const Assignees = require("../models/assigneesModel");
 const Task = require("../models/taskModel");
 const Comment = require("../models/commentModel");
+const Budget = require("../models/budgetModel");
 const mongoose = require("mongoose");
 const { Types } = mongoose;
 const { sendNotification } = require('./notificationController');
@@ -51,9 +49,9 @@ const createEvent = async (req, res) => {
 
     const savedEvent = await newEvent.save();
 
-     const adminUsers = await User.find({ role: 'admin' }, '_id');
+    const adminUsers = await User.find({ role: 'admin' }, '_id');
     const adminIds = adminUsers.map(admin => admin._id.toString());
-    
+
     const notifyAdminsAndClient = [...adminIds];
     if (clientId) notifyAdminsAndClient.push(clientId);
 
@@ -61,8 +59,8 @@ const createEvent = async (req, res) => {
       recipients: notifyAdminsAndClient,
       type: "event",
       message: `New event "${eventName}" created`,
-        sender: createdBy,
-      });
+      sender: createdBy,
+    });
 
     if (assignees && assignees.length > 0) {
       await sendNotification({
@@ -456,7 +454,7 @@ const updateEvent = async (req, res) => {
     const removedAssignees = await User.find({ _id: { $in: removedAssigneeIds } }, 'userName');
     const addedAssignees = await User.find({ _id: { $in: addedAssigneeIds } }, 'userName');
 
-     const adminUsers = await User.find({ role: 'admin' }, '_id');
+    const adminUsers = await User.find({ role: 'admin' }, '_id');
     const adminIds = adminUsers.map(admin => admin._id.toString());
 
     for (const user of removedAssignees) {
@@ -468,8 +466,8 @@ const updateEvent = async (req, res) => {
       });
 
       const notifyAdminsAndClient = [...adminIds];
-      if (clientId) notifyAdminsAndClient.push(clientId); 
-        {
+      if (clientId) notifyAdminsAndClient.push(clientId);
+      {
         await sendNotification({
           recipients: notifyAdminsAndClient,
           type: 'event',
@@ -489,8 +487,8 @@ const updateEvent = async (req, res) => {
       });
 
       const notifyAdminsAndClient = [...adminIds];
-      if (clientId) notifyAdminsAndClient.push(clientId); 
-        {
+      if (clientId) notifyAdminsAndClient.push(clientId);
+      {
         await sendNotification({
           recipients: notifyAdminsAndClient,
           type: 'event',
@@ -546,6 +544,9 @@ const deleteEvent = async (req, res) => {
     // Delete all tasks related to the event
     await Task.deleteMany({ eventId });
 
+    //Delete all budgets related to the event
+    await Budget.deleteMany({ eventId });
+
     res.status(200).json({ message: "Event and related data deleted successfully" });
   } catch (error) {
     console.error("Error deleting event:", error);
@@ -558,7 +559,7 @@ const updateStatus = async (req, res) => {
     const id = req.params.id;
     const { status } = req.body;
 
-    console.log("Received ID:", id); 
+    console.log("Received ID:", id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid event ID format" });
