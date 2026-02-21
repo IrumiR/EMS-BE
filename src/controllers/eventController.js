@@ -345,6 +345,7 @@ const getEventReportData = async (req, res) => {
 const getEventUpcomingData = async (req, res) => {
   try {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const events = await Event.find(
       { startDate: { $gte: today } },
       "eventName startDate endDate status proposedLocation clientId progress"
