@@ -23,6 +23,10 @@ const createTask = async (req, res) => {
             createdBy
         } = req.body;
 
+        if (assignees && Array.isArray(assignees) && assignees.length > 5) {
+            return res.status(400).json({ message: "Only 5 assignees allowed per task." });
+        }
+
         const newTask = new Task({
             taskName,
             taskDescription,
@@ -51,7 +55,7 @@ const createTask = async (req, res) => {
         const adminIds = adminUsers.map(admin => admin._id.toString());
 
         const notifyAdminsAndClient = [...adminIds];
-        if (clientId) notifyAdminsAndClient.push(clientId); 
+        if (clientId) notifyAdminsAndClient.push(clientId);
         {
             await sendNotification({
                 recipients: notifyAdminsAndClient,
@@ -161,7 +165,6 @@ const getAllTasksByUserId = async (req, res) => {
         });
     }
 };
-
 
 const getTaskById = async (req, res) => {
     try {
@@ -298,6 +301,10 @@ const updateTask = async (req, res) => {
 
         const oldAssigneeIds = originalTask.assignees.map(id => id.toString());
 
+        if (req.body.assignees && Array.isArray(req.body.assignees) && req.body.assignees.length > 5) {
+            return res.status(400).json({ message: "Only 5 assignees allowed per task." });
+        }
+
         const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, { new: true });
 
         if (!updatedTask) {
@@ -400,8 +407,6 @@ const updateTask = async (req, res) => {
     }
 };
 
-
-
 const updateStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -464,7 +469,6 @@ const updateStatus = async (req, res) => {
     }
 };
 
-
 const updatePriority = async (req, res) => {
     try {
         const { id } = req.params;
@@ -504,7 +508,6 @@ const updatePriority = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
-
 
 const deleteTask = async (req, res) => {
     try {
