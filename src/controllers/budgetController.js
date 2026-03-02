@@ -76,7 +76,7 @@ const getAllBudgets = async (req, res) => {
             .limit(parseInt(limit))
             .populate('eventId', 'eventName')
             .populate('clientId', 'userName')
-            .populate('createdBy', 'userName');
+            .populate('createdBy', 'userName role');
 
         const totalCount = await Budget.countDocuments(query);
 
@@ -125,7 +125,7 @@ const getBudgetReportData = async (req, res) => {
         )
             .populate({ path: 'eventId', select: 'eventName' })
             .populate({ path: 'clientId', select: 'userName' })
-            .populate({ path: 'createdBy', select: 'userName' })
+            .populate({ path: 'createdBy', select: 'userName role' })
             .sort({ createdAt: 1 });
 
         res.status(200).json({
@@ -211,7 +211,7 @@ const getBudgetById = async (req, res) => {
         const budget = await Budget.findById(id)
             .populate('eventId', 'eventName')
             .populate('clientId', 'userName')
-            .populate('createdBy', 'userName');
+            .populate('createdBy', 'userName role');
 
         if (!budget) {
             return res.status(404).json({ message: "Budget not found" });
