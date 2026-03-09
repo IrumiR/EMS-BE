@@ -699,7 +699,7 @@ const getTaskStatusCountsByClientId = async (req, res) => {
 
 const getMonthlyTasks = async (req, res) => {
     try {
-        const { year, month, userId, clientId } = req.query;
+        const { year, month, clientId, assignees } = req.query;
 
         if (!year || !month) {
             return res.status(400).json({ message: "Year and month are required" });
@@ -718,22 +718,26 @@ const getMonthlyTasks = async (req, res) => {
             endDate: { $gte: startOfMonth },
         };
 
-        if (userId) {
-            query.assignees = { $in: [userId] };
-        }
-
         if (clientId) {
             const clientEvents = await Event.find({ clientId }, { _id: 1 });
             const eventIds = clientEvents.map(event => event._id);
             query.eventId = { $in: eventIds };
         }
 
+        if (assignees) {
+            query.assignees = { $in: [assignees] };
+        }
+
         const tasks = await Task.find(query)
-            .select("taskName status priority startDate endDate eventId")
+            .select("taskName status priority startDate endDate eventId assignees")
             .populate({
                 path: "eventId",
                 select: "eventName",
-            });
+            })
+            .populate({
+                path: "assignees",
+                select: "userName",
+            })
 
         // Build a date-to-task map
         const taskMap = {};
@@ -762,6 +766,7 @@ const getMonthlyTasks = async (req, res) => {
                             startDate: task.startDate,
                             endDate: task.endDate,
                             eventName: task.eventId?.eventName || "Unknown",
+                            assignees: task.assignees || [],
                         });
                     }
                 }
@@ -780,8 +785,6 @@ const getMonthlyTasks = async (req, res) => {
         res.status(500).json({ message: "Something went wrong", error: error.message });
     }
 };
-
-
 
 module.exports = {
     createTask,
