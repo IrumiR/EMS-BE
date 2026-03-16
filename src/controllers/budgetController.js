@@ -21,6 +21,16 @@ const createBudget = async (req, res) => {
             createdBy
         });
 
+        const existingBudget = await Budget.findOne({ eventId });
+        if (existingBudget) {
+            const event = await Event.findById(eventId);
+            if (event) {
+                return res.status(400).json({ message: `Budget for ${event.eventName} already exists` });
+            } else {
+                return res.status(404).json({ message: "Event not found" });
+            }
+        }
+
         const savedBudget = await newBudget.save();
 
         const event = await Event.findById(eventId);
@@ -232,7 +242,21 @@ const updateBudget = async (req, res) => {
             return res.status(400).json({ message: "Invalid budget ID" });
         }
 
-        const updatedBudget = await Budget.findByIdAndUpdate(id, updates, { new: true });
+        if (updates.eventId) {
+            const existingBudget = await Budget.findOne({ eventId: updates.eventId, clientId: updates.clientId, _id: { $ne: id } });
+            if (existingBudget) {
+                const event = await Event.findById(updates.eventId);
+                if (event) {
+                    return res.status(400).json({ message: `Budget for ${event.eventName} already exists` });
+                } else {
+                    return res.status(404).json({ message: "Event not found" });
+                }
+            }
+        }
+
+        const updatedBudget = await Budget.findByIdAndUpdate(id, updates, {
+            new: true,
+        });
 
         if (!updatedBudget) {
             return res.status(404).json({ message: "Budget not found" });
@@ -248,16 +272,20 @@ const updateBudget = async (req, res) => {
 
         await sendNotification({
             recipients: [clientId],
-            type: 'budget',
+            type: "budget",
             message: `Budget has been updated for event ${event.eventName}.`,
-            sender
+            sender,
         });
 
-        res.status(200).json({ message: "Budget updated successfully", budget: updatedBudget });
+        res
+            .status(200)
+            .json({ message: "Budget updated successfully", budget: updatedBudget });
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong", error: error.message });
+        res
+            .status(500)
+            .json({ message: "Something went wrong", error: error.message });
     }
-}
+};
 
 const deleteBudget = async (req, res) => {
     try {
