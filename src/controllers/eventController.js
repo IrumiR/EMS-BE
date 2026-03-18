@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 const Task = require("../models/taskModel");
 const Comment = require("../models/commentModel");
 const Budget = require("../models/budgetModel");
+const InventoryItem = require("../models/inventoryItemModel");
 const mongoose = require("mongoose");
 const { Types } = mongoose;
 const { sendNotification } = require('./notificationController');
@@ -547,6 +548,11 @@ const deleteEvent = async (req, res) => {
 
     //Delete all budgets related to the event
     await Budget.deleteMany({ eventId });
+
+    await InventoryItem.updateMany(
+      { "reservations.eventId": eventId },
+      { $pull: { reservations: { eventId: eventId } } }
+    );
 
     res.status(200).json({ message: "Event and related data deleted successfully" });
   } catch (error) {
