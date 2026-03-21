@@ -87,17 +87,16 @@ const getAllInventoryItems = async (req, res) => {
 };
 
 const getAllDropdown = async (req, res) => {
-    console.log("Fetching all inventory items for dropdown");
     try {
         const dropdownItems = await InventoryItem.find(
-            { remainingQuantity: { $gt: 0 } }, 
-            'itemName _id remainingQuantity price' 
+            { $or: [{ remainingQuantity: { $gt: 0 } }, { totalQuantity: { $gt: 0 } }] },
+            'itemName _id remainingQuantity totalQuantity isSingleUse price' 
         ).sort({ itemName: 1 }); 
 
         const formattedItems = dropdownItems.map(item => ({
             itemId: item._id,
             itemName: item.itemName,
-            remainingQuantity: item.remainingQuantity,
+            remainingQuantity: item.isSingleUse ? item.remainingQuantity : item.totalQuantity,
             price: item.price
         }));
 
@@ -191,7 +190,7 @@ const updateInventoryItem = async (req, res) => {
             itemDescription,
             category,
             totalQuantity,
-            remainingQuantity,
+            remainingQuantity: isSingleUse ? totalQuantity : remainingQuantity,
             price,
             condition,
             variations,
