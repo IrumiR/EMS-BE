@@ -108,7 +108,9 @@ const createTask = async (req, res) => {
 
 const getAllTasksByUserId = async (req, res) => {
     try {
-        const { userId, page = 1, limit = 10, search = "", status, eventId } = req.query;
+        const { page = 1, limit = 10, search = "", status, eventId } = req.query;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
         const query = {
             $or: [
@@ -118,11 +120,13 @@ const getAllTasksByUserId = async (req, res) => {
         };
 
         if (
+            userRole !== "admin" &&
+            userRole !== "manager" &&
             userId &&
             userId !== "all" &&
             mongoose.Types.ObjectId.isValid(userId)
         ) {
-            query.assignees = { $in: [new mongoose.Types.ObjectId(userId)] };
+            query["assignees.assigneeId"] = { $in: [new mongoose.Types.ObjectId(userId)] };
         }
 
         if (status) {
