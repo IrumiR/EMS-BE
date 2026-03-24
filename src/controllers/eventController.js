@@ -90,6 +90,8 @@ const getAllEvents = async (req, res) => {
       status,
       eventType,
     } = req.query;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     const query = {
       $or: [
@@ -98,9 +100,9 @@ const getAllEvents = async (req, res) => {
       ],
     };
 
-    if (clientId) {
+    if (userRole === 'client') {
       query.$and = query.$and || [];
-      query.$and.push({ clientId });
+      query.$and.push({ clientId: userId });
     }
 
     if (status) {
