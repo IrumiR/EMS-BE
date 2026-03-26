@@ -54,6 +54,8 @@ const createBudget = async (req, res) => {
 const getAllBudgets = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = "", clientId, type } = req.query;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
         const query = {
             $or: [
@@ -63,9 +65,9 @@ const getAllBudgets = async (req, res) => {
         };
 
         // Filter by clientId if provided
-        if (clientId) {
+        if (userRole == 'client') {
             query.$and = query.$and || [];
-            query.$and.push({ clientId });
+            query.$and.push({ clientId: userId });
         }
 
         // Filter by budget type (Approved, Pending, Rejected)
