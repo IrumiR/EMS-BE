@@ -86,7 +86,6 @@ const getAllEvents = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
-      clientId,
       status,
       eventType,
     } = req.query;
@@ -238,11 +237,12 @@ const getMonthlyEvents = async (req, res) => {
 
 const getEventCountsByStatus = async (req, res) => {
   try {
-    const { clientId } = req.query;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     // Build match stage with proper ObjectId if clientId is provided
-    const matchStage = clientId
-      ? { $match: { clientId: new Types.ObjectId(clientId) } }
+    const matchStage = userRole === 'client'
+      ? { $match: { clientId: new Types.ObjectId(userId) } }
       : { $match: {} };
 
     const statusCounts = await Event.aggregate([
@@ -350,7 +350,7 @@ const getEventUpcomingData = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const events = await Event.find(
-      { startDate: { $gte: today } },
+      { endDate: { $gte: today } },
       "eventName startDate endDate status proposedLocation clientId progress"
     )
       .populate({

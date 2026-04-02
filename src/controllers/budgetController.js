@@ -153,14 +153,15 @@ const getBudgetReportData = async (req, res) => {
 
 const getBudgetCountsByStatus = async (req, res) => {
     try {
-        const { clientId } = req.query;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
         const pipeline = [];
 
-        if (clientId) {
+        if (userRole === 'client') {
             pipeline.push({
                 $match: {
-                    clientId: new Types.ObjectId(clientId)
+                    clientId: new Types.ObjectId(userId)
                 }
             });
         }

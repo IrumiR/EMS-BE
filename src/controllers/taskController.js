@@ -582,7 +582,7 @@ const calculateAndUpdateEventProgress = async (eventId) => {
 };
 
 const getUpcomingTasksByClientId = async (req, res) => {
-    const { clientId } = req.params;
+    const clientId = req.user?.id;
 
     if (!clientId) {
         return res.status(400).json({ message: 'Client ID is required' });
@@ -593,10 +593,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         // Step 1: Get upcoming events by clientId
-        const upcomingEvents = await Event.find({
-            clientId,
-            startDate: { $gte: today },
-        }).select('_id');
+        const upcomingEvents = await Event.find({ clientId }).select('_id');
 
         const eventIds = upcomingEvents.map(event => event._id);
 
@@ -607,7 +604,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
         // Step 2: Get upcoming tasks related to those events
         const upcomingTasks = await Task.find({
             eventId: { $in: eventIds },
-            startDate: { $gte: today },
+            endDate: { $gte: today },
         })
             .select('taskName startDate endDate status priority eventId subTasks') // only selected fields
             .populate({
@@ -637,7 +634,7 @@ const getUpcomingTasksByClientId = async (req, res) => {
 };
 
 const getTaskStatusCountsByClientId = async (req, res) => {
-    const { clientId } = req.params;
+    const clientId = req.user?.id;
 
     if (!clientId) {
         return res.status(400).json({ message: 'Client ID is required' });
