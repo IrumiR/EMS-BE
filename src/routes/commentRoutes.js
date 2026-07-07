@@ -33,7 +33,7 @@ router.get(
 router.delete(
   "/:commentId",
   verifyToken,
-  authorizeRoles("admin", "manager", "team-member", "client"),
+  authorizeRoles("admin", "manager"),
   deleteComment
 );
 

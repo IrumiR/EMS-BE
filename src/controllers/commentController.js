@@ -7,27 +7,27 @@ const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+const isAssignedToTask = (userId, task) => {
+    const assigneeIds = task.assignees?.map((a) => String(a)) || [];
+    return assigneeIds.includes(String(userId));
+};
+
+const canCommentOnTask = (userId, userRole, task, clientId) => {
+    if (userRole === 'admin' || userRole === 'manager') return true;
+    if (userRole === 'team-member') return isAssignedToTask(userId, task);
+    if (userRole === 'client') return String(clientId) === String(userId);
+    return false;
+};
+
 // Export this if used in your route
 const uploadCommentImages = upload.array('images');
 
 
 const createComment = async (req, res) => {
     try {
-        const { taskId, commentText, createdBy } = req.body;
-
-        const images = req.files?.map(file => ({
-            data: file.buffer,
-            contentType: file.mimetype
-        })) || [];
-
-        const newComment = new Comment({
-            taskId,
-            commentText,
-            createdBy,
-            images 
-        });
-
-        const savedComment = await newComment.save();
+        const { taskId, commentText } = req.body;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
         const parentTask = await Task.findById(taskId);
         if (!parentTask) {
@@ -40,15 +40,30 @@ const createComment = async (req, res) => {
         }
 
         const clientId = parentEvent.clientId?.toString();
-        const assigneeIds = parentTask.assignees?.map((a) =>
-            typeof a === "string" ? a : a.assigneeId || a
-        ).map(String) || [];
+        if (!canCommentOnTask(userId, userRole, parentTask, clientId)) {
+            return res.status(403).json({ message: "You are not authorized to comment on this task" });
+        }
 
-        const isClient = createdBy === clientId;
+        const images = req.files?.map(file => ({
+            data: file.buffer,
+            contentType: file.mimetype
+        })) || [];
+
+        const newComment = new Comment({
+            taskId,
+            commentText,
+            createdBy: userId,
+            images 
+        });
+
+        const savedComment = await newComment.save();
+
+        const assigneeIds = parentTask.assignees?.map((a) => String(a)) || [];
+        const isClient = userRole === 'client' && String(userId) === clientId;
 
         const recipients = isClient
-            ? assigneeIds.filter((id) => id !== createdBy)
-            : clientId && clientId !== createdBy
+            ? assigneeIds.filter((id) => id !== String(userId))
+            : clientId && clientId !== String(userId)
                 ? [clientId]
                 : [];
 
@@ -57,7 +72,7 @@ const createComment = async (req, res) => {
                 recipients: [...new Set(recipients)],
                 type: "comment",
                 message: `New comment on your task "${parentTask.taskName}".`,
-                sender: createdBy,
+                sender: userId,
             });
         }
 
@@ -130,13 +145,10 @@ const getCommentsByTaskId = async (req, res) => {
 
 const addReplyToComment = async (req, res) => {
     try {
-        const { commentId } = req.params; 
-        const { replyText, createdBy } = req.body;
-
-        const images = req.files?.map(file => ({
-            data: file.buffer,
-            contentType: file.mimetype
-        })) || [];
+        const { commentId } = req.params;
+        const { replyText } = req.body;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
         const parentComment = await Comment.findById(commentId);
         if (!parentComment) {
@@ -144,12 +156,31 @@ const addReplyToComment = async (req, res) => {
         }
 
         const task = await Task.findById(parentComment.taskId);
-        const taskName = task?.taskName || "a task";
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        const parentEvent = await Event.findById(task.eventId);
+        if (!parentEvent) {
+            return res.status(404).json({ message: "Parent event not found" });
+        }
+
+        const clientId = parentEvent.clientId?.toString();
+        if (!canCommentOnTask(userId, userRole, task, clientId)) {
+            return res.status(403).json({ message: "You are not authorized to reply to this comment" });
+        }
+
+        const images = req.files?.map(file => ({
+            data: file.buffer,
+            contentType: file.mimetype
+        })) || [];
+
+        const taskName = task.taskName || "a task";
 
         const reply = new Comment({
             taskId: parentComment.taskId,
             commentText: replyText,
-            createdBy,
+            createdBy: userId,
             parentCommentId: parentComment._id,
             images
         });
@@ -160,9 +191,8 @@ const addReplyToComment = async (req, res) => {
             recipients: [parentComment.createdBy],
             type: 'comment',
             message: `New reply on your task ${taskName}.`,
-            sender: createdBy
+            sender: userId
         });
-
 
         res.status(201).json({
             message: "Reply added successfully",
