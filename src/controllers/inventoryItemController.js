@@ -89,7 +89,9 @@ const getAllInventoryItems = async (req, res) => {
 const getAllDropdown = async (req, res) => {
     try {
         const dropdownItems = await InventoryItem.find(
-            { $or: [{ remainingQuantity: { $gt: 0 } }, { totalQuantity: { $gt: 0 } }] },
+            //To exclude single-use items with 0 quantity, you can use the following filter:
+            // { $or: [{ remainingQuantity: { $gt: 0 } }, { totalQuantity: { $gt: 0 } }] },
+            {},
             'itemName _id remainingQuantity totalQuantity isSingleUse price' 
         ).sort({ itemName: 1 }); 
 
