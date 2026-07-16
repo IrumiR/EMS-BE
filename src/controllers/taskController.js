@@ -525,43 +525,75 @@ const updateStatus = async (req, res) => {
 };
 
 const updatePriority = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { priority } = req.body;
+  try {
+    const { id } = req.params;
+    const { priority } = req.body;
 
-        if (!id) {
-            return res.status(400).json({ message: "Invalid task ID format" });
-        }
-
-        const updatedTask = await Task.findByIdAndUpdate(id, { priority }, { new: true });
-
-        if (!updatedTask) {
-            return res.status(404).json({ message: "Task not found" });
-        }
-
-        const event = await Event.findById(updatedTask.eventId);
-
-        if (!event) {
-            return res.status(404).json({ message: "Associated event not found" });
-        }
-
-        const clientId = event.clientId;
-        const sender = await User.findById(updatedTask.createdBy);
-
-        if (clientId) {
-            await sendNotification({
-                recipients: [clientId],
-                type: "task",
-                message: `Priority of task "${updatedTask.taskName}" has been updated to ${priority}`,
-                sender
-            });
-        }
-
-        res.status(200).json({ message: "Task priority updated successfully", task: updatedTask });
-    } catch (error) {
-        console.error("Error updating task priority:", error);
-        res.status(500).json({ message: "Something went wrong", error: error.message });
+    if (!id) {
+      return res.status(400).json({ message: "Invalid task ID format" });
     }
+
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    if (!userId) {
+      return res.status(401).json({ message: "You're not authorized" });
+    }
+
+    // 🔍 Fetch task first (DO NOT update yet)
+    const task = await Task.findById(id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // // 🔐 Permission check BEFORE update
+    // if (userRole !== "admin" && userRole !== "manager") {
+    //   const isAssigned = task.assignees.some(
+    //     (assignee) => assignee.toString() === userId,
+    //   );
+
+    //   if (!isAssigned) {
+    //     return res.status(403).json({
+    //       message:
+    //         "You do not have permission to update the priority of this task",
+    //     });
+    //   }
+    // }
+
+    task.priority = priority;
+    await task.save();
+
+    const event = await Event.findById(task.eventId);
+
+    if (!event) {
+      return res.status(404).json({ message: "Associated event not found" });
+    }
+
+    const clientId = event.clientId;
+    const sender = await User.findById(task.createdBy);
+
+    // 🔔 Send notification
+    if (clientId) {
+      await sendNotification({
+        recipients: [clientId],
+        type: "task",
+        message: `Priority of task "${task.taskName}" has been updated to ${priority}`,
+        sender,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Task priority updated successfully",
+      task,
+    });
+  } catch (error) {
+    console.error("Error updating task priority:", error);
+    return res.status(500).json({
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
 };
 
 const deleteTask = async (req, res) => {
