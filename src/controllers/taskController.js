@@ -23,9 +23,10 @@ const createTask = async (req, res) => {
             createdBy
         } = req.body;
 
-        if (assignees && Array.isArray(assignees) && assignees.length > 5) {
-            return res.status(400).json({ message: "Only 5 assignees allowed per task." });
-        }
+        //Assignee limit validation
+        // if (assignees && Array.isArray(assignees) && assignees.length > 5) {
+        //     return res.status(400).json({ message: "Only 5 assignees allowed per task." });
+        // }
 
         const newTask = new Task({
             taskName,
@@ -305,9 +306,10 @@ const updateTask = async (req, res) => {
 
         const oldAssigneeIds = originalTask.assignees.map(id => id.toString());
 
-        if (req.body.assignees && Array.isArray(req.body.assignees) && req.body.assignees.length > 5) {
-            return res.status(400).json({ message: "Only 5 assignees allowed per task." });
-        }
+        //Assignee limit validation
+        // if (req.body.assignees && Array.isArray(req.body.assignees) && req.body.assignees.length > 5) {
+        //     return res.status(400).json({ message: "Only 5 assignees allowed per task." });
+        // }
 
         const updatedTask = await Task.findByIdAndUpdate(taskId, req.body, { new: true });
 
