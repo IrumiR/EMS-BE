@@ -304,6 +304,27 @@ const updateTask = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        //validation for updating unassigned tasks
+    //     const userId = req.user?.id;
+    //     const userRole = req.user?.role;
+
+    //     if (!userId) {
+    //         return res.status(401).json({ message: "Unauthorized" });
+    //     }
+
+    //     if (userRole !== "admin" && userRole !== "manager") {
+    //   const isAssigned = originalTask.assignees.some(
+    //     (assignee) => assignee.toString() === userId,
+    //   );
+    //    if (!isAssigned) {
+    //     const isUpdatingSubTasks = req.body.subTasks && Array.isArray(req.body.subTasks) && Object.keys(req.body).every((key) => (key === 'subTasks'));
+    //     const errorMessage = isUpdatingSubTasks
+    //       ? "You do not have permission to update subtasks of this task"
+    //       : "You do not have permission to edit this task";
+    //     return res.status(403).json({ message: errorMessage });
+    //   }
+    // }
+
         const oldAssigneeIds = originalTask.assignees.map(id => id.toString());
 
         //Assignee limit validation
