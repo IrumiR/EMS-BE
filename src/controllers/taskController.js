@@ -443,6 +443,34 @@ const updateStatus = async (req, res) => {
             return res.status(400).json({ message: "Invalid task ID format" });
         }
 
+        const existingTask = await Task.findById(id);
+
+        if (!existingTask) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        // Check if the user has permission to update the status
+        //  const userId = req.user?.id;
+        //  const userRole = req.user?.role;
+
+        //  if (!userId) {
+        //    return res.status(401).json({ message: "You're not authorized" });
+        //  }
+
+        //  if (userRole !== "admin" && userRole !== "manager") {
+        //    const isAssigned = existingTask.assignees.some(
+        //      (assignee) => assignee.toString() === userId,
+        //    );
+        //    if (!isAssigned) {
+        //      return res
+        //        .status(403)
+        //        .json({
+        //          message:
+        //            "You do not have permission to update the status of this task",
+        //        });
+        //    }
+        //  }
+
         const updatedTask = await Task.findByIdAndUpdate(id, { status }, { new: true });
 
         if (!updatedTask) {
