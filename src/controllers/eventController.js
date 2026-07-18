@@ -460,13 +460,14 @@ const updateEvent = async (req, res) => {
 
     const adminUsers = await User.find({ role: 'admin' }, '_id');
     const adminIds = adminUsers.map(admin => admin._id.toString());
+    const updaterId = req.user?.id || createdBy;
 
     for (const user of removedAssignees) {
       await sendNotification({
         recipients: [user._id],
         type: 'event',
         message: `You're removed from the event "${eventName}"`,
-        sender: createdBy
+        sender: updaterId
       });
 
       const notifyAdminsAndClient = [...adminIds];
@@ -476,7 +477,7 @@ const updateEvent = async (req, res) => {
           recipients: notifyAdminsAndClient,
           type: 'event',
           message: `${user.userName} has been removed from the event "${eventName}"`,
-          sender: createdBy
+          sender: updaterId
         });
       }
     }
@@ -487,7 +488,7 @@ const updateEvent = async (req, res) => {
         recipients: [user._id],
         type: 'event',
         message: `You're assigned to the event "${eventName}"`,
-        sender: createdBy
+        sender: updaterId
       });
 
       const notifyAdminsAndClient = [...adminIds];
@@ -497,7 +498,7 @@ const updateEvent = async (req, res) => {
           recipients: notifyAdminsAndClient,
           type: 'event',
           message: `${user.userName} has been added to the event "${eventName}"`,
-          sender: createdBy
+          sender: updaterId
         });
       }
     }
@@ -511,7 +512,7 @@ const updateEvent = async (req, res) => {
         recipients: generalRecipients,
         type: 'event',
         message: `Details of event "${eventName}" have been updated`,
-        sender: createdBy
+        sender: updaterId
       });
     }
 
@@ -599,7 +600,7 @@ const updateStatus = async (req, res) => {
 
     const { eventName, clientId, assignees, createdBy } = updatedEvent;
     const recipients = [...new Set([clientId, ...assignees])];
-    const sender = await User.findById(updatedEvent.createdBy);
+    const sender = await User.findById(req.user?.id || createdBy);
 
     await sendNotification({
       recipients,
