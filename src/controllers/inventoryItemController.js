@@ -262,6 +262,13 @@ const createReservation = async (req, res) => {
             return res.status(404).json({ message: "Inventory item not found" });
         }
 
+        //Damaged item check
+        // if (item.condition.includes("Damaged")) {
+        //   return res.status(400).json({
+        //     message: "Can`t create reservation for a damaged item",
+        //   });
+        // }
+
         //for reserving item within the event start date and end date
         // const event = await Event.findById(eventId);
         // if (!event) {
