@@ -449,6 +449,22 @@ const updateStatus = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        //Validation to ensure all subtasks as completed in order to update the status as completed
+        // if (status === "Completed") {
+        //   const hasIncompleteSubTasks = existingTask.subTasks.some(
+        //     (subTask) => subTask.status !== "Completed",
+        //   );
+
+        //   if (hasIncompleteSubTasks) {
+        //     return res
+        //       .status(400)
+        //       .json({
+        //         message:
+        //           "Cannot mark task as completed until all subtasks are completed.",
+        //       });
+        //   }
+        // }
+
         // Check if the user has permission to update the status
         //  const userId = req.user?.id;
         //  const userRole = req.user?.role;
