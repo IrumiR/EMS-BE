@@ -128,6 +128,8 @@ const getAllTasksByUserId = async (req, res) => {
             mongoose.Types.ObjectId.isValid(userId)
         ) {
             query["assignees.assigneeId"] = { $in: [new mongoose.Types.ObjectId(userId)] };
+            //Team members will be able to see assigned tasks in my tasks screen 
+            // query.assignees = { $in: [new mongoose.Types.ObjectId(userId)] };
         }
 
         if (status) {
