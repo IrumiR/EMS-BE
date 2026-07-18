@@ -31,6 +31,33 @@ const createBudget = async (req, res) => {
             }
         }
 
+        // Add validation for damaged & single use items
+        // if (Array.isArray(inventoryItems) && inventoryItems.length > 0) {
+        //     const itemIds = inventoryItems
+        //         .map((item) => item.itemId || item._id || item.id)
+        //         .filter((id) => id);
+
+        //     if (itemIds.length > 0) {
+        //         const singleUseCount = await InventoryItem.countDocuments({
+        //             _id: { $in: itemIds },
+        //             isSingleUse: true,
+        //         });
+
+        //         if (singleUseCount > 5) {
+        //             return res.status(400).json({ message: "More than 5 single-use items cannot be added to a budget" });
+        //         }
+
+        //         const damagedCount = await InventoryItem.countDocuments({
+        //             _id: { $in: itemIds },
+        //             condition: { $in: ["Damaged"] },
+        //         });
+
+        //         if (damagedCount > 0) {
+        //             return res.status(400).json({ message: "Damaged inventory items cannot be added to a budget" });
+        //         }
+        //     }
+        // }
+
         const savedBudget = await newBudget.save();
 
         const event = await Event.findById(eventId);
@@ -240,6 +267,7 @@ const updateBudget = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+        const { inventoryItems = [] } = updates;
 
         if (!id) {
             return res.status(400).json({ message: "Invalid budget ID" });
@@ -256,6 +284,33 @@ const updateBudget = async (req, res) => {
                 }
             }
         }
+
+        // Add validation for damaged & single use items
+        // if (Array.isArray(inventoryItems) && inventoryItems.length > 0) {
+        //     const itemIds = inventoryItems
+        //         .map((item) => item.itemId || item._id || item.id)
+        //         .filter((id) => id);
+
+        //     if (itemIds.length > 0) {
+        //         const singleUseCount = await InventoryItem.countDocuments({
+        //             _id: { $in: itemIds },
+        //             isSingleUse: true,
+        //         });
+
+        //         if (singleUseCount > 5) {
+        //             return res.status(400).json({ message: "More than 5 single-use items cannot be added to a budget" });
+        //         }
+
+        //         const damagedCount = await InventoryItem.countDocuments({
+        //             _id: { $in: itemIds },
+        //             condition: { $in: ["Damaged"] },
+        //         });
+
+        //         if (damagedCount > 0) {
+        //             return res.status(400).json({ message: "Damaged inventory items cannot be added to a budget" });
+        //         }
+        //     }
+        // }
 
         const updatedBudget = await Budget.findByIdAndUpdate(id, updates, {
             new: true,
