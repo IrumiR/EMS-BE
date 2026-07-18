@@ -574,6 +574,20 @@ const updateStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid event ID format" });
     }
 
+    // Check if the status is "Completed"
+    // if (status === "Completed") {
+    //   const incompleteTasks = await Task.find({
+    //     eventId: id,
+    //     status: { $ne: "Completed" },
+    //   });
+
+    //   if (incompleteTasks) {
+    //     return res.status(400).json({
+    //       message: "Cannot complete event. All tasks must be completed first.",
+    //     });
+    //   }
+    // }
+
     const updatedEvent = await Event.findByIdAndUpdate(
       id,
       { status },
