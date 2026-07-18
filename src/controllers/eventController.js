@@ -585,13 +585,34 @@ const updateStatus = async (req, res) => {
 
     const { eventName, clientId, assignees, createdBy } = updatedEvent;
     const recipients = [...new Set([clientId, ...assignees])];
+    const sender = await User.findById(updatedEvent.createdBy);
 
     await sendNotification({
       recipients,
       type: 'event',
       message: `Status of ${eventName} has been updated to ${status}`,
-      sender: createdBy
+      sender
     });
+
+    // Check if the event is overdue
+    // const now = new Date();
+    // const isOverdue = updatedEvent.status === "In Progress" && now > updatedEvent.endDate;
+
+    // if(isOverdue){
+    //  const adminUsers = await User.find({ role: 'admin' }, '_id');
+    //  const adminIds = adminUsers.map(admin => admin._id.toString());
+
+    //  const recipients = [...new Set([clientId,...adminIds].filter(Boolean))];
+
+    //  if(recipients.length > 0){
+    //   await sendNotification({
+    //     recipients,
+    //     type: 'event',
+    //     message: `Event ${updatedEvent.eventName} is overdue!`,
+    //     sender
+    //   })
+    //  }
+    // }
 
     res.status(200).json({ message: "Event status updated successfully" });
   } catch (error) {
