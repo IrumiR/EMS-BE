@@ -114,7 +114,7 @@ const createTask = async (req, res) => {
 
 const getAllTasksByUserId = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = "", status, eventId } = req.query;
+        const { page = 1, limit = 10, search = "", status, priority, eventId } = req.query;
         const userId = req.user?.id;
         const userRole = req.user?.role;
 
@@ -139,6 +139,10 @@ const getAllTasksByUserId = async (req, res) => {
 
         if (status) {
             query.status = status;
+        }
+
+        if (priority) {
+            query.priority = priority;
         }
 
         if (
