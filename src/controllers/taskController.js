@@ -654,25 +654,24 @@ const deleteTask = async (req, res) => {
         { new: true },
       );
 
-      // Send notifications to admins, client, and assignees about the deletion
-    //   const clientId = event.clientId?.toString();
-    //   const assigneeIds = taskToDelete.assignees?.map(id => id.toString()) || [];
-    //   const adminUsers = await User.find({ role: 'admin' }, '_id');
-    //   const adminIds = adminUsers.map(admin => admin._id.toString());
-    //   const recipients = [...new Set([...adminIds, clientId, ...assigneeIds].filter(Boolean))];
-    //   const senderId = req.user?.id;
+      const clientId = event.clientId?.toString();
+      const assigneeIds = taskToDelete.assignees?.map(id => id.toString()) || [];
+      const adminUsers = await User.find({ role: 'admin' }, '_id');
+      const adminIds = adminUsers.map(admin => admin._id.toString());
+      const recipients = [...new Set([...adminIds, clientId, ...assigneeIds].filter(Boolean))];
+      const senderId = req.user?.id;
 
-    //   if (recipients.length > 0) {
-    //     await sendNotification({
-    //       recipients,
-    //       type: "task",
-    //       message: `Task "${taskToDelete.taskName}" has been deleted from event "${event.eventName}"`,
-    //       sender: senderId,
-    //     });
-    //   }
+      if (recipients.length > 0) {
+        await sendNotification({
+          recipients,
+          type: "task",
+          message: `Task "${taskToDelete.taskName}" has been deleted from event "${event.eventName}"`,
+          sender: senderId,
+        });
+      }
 
       // Step 5: Recalculate event progress after task removal
-    //   await calculateAndUpdateEventProgress(taskToDelete.eventId);
+      await calculateAndUpdateEventProgress(taskToDelete.eventId);
 
       res
         .status(200)
