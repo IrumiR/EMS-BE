@@ -645,12 +645,13 @@ const getEventsDropdown = async (req, res) => {
 
     const baseQuery = {}
 
-    if(filterByStatus === "active") {
-      baseQuery.status = {$in: ["Approved", "In Progress"]}
-    };
+    //WIP: status filtering for reservations & budget creation
+    // if(filterByStatus === "active") {
+    //   baseQuery.status = {$in: ["Approved", "In Progress"]}
+    // };
 
     if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
-      query.clientId = new mongoose.Types.ObjectId(clientId);
+      baseQuery.clientId = new mongoose.Types.ObjectId(clientId);
     }
 
     let events = await Event.find(baseQuery, {
