@@ -44,12 +44,17 @@ const createTask = async (req, res) => {
             createdBy
         });
 
-        const savedTask = await newTask.save();
-
         const event = await Event.findById(eventId);
         if (!event) {
             return res.status(404).json({ message: "Associated event not found" });
         }
+
+        //Task creation validation
+        // if (event.status !== "In Progress") {
+        //     return res.status(400).json({ message: "Tasks can only be created for events with status 'In Progress'" });
+        // }
+
+        const savedTask = await newTask.save();
 
         const clientId = event.clientId;
         const adminUsers = await User.find({ role: 'admin' }, '_id');
