@@ -621,35 +621,62 @@ const updatePriority = async (req, res) => {
 
 const deleteTask = async (req, res) => {
     try {
-        const taskId = req.params.id;
+      const taskId = req.params.id;
 
-        // Step 1: Find the task to get eventId and comments
-        const taskToDelete = await Task.findById(taskId);
+      // Step 1: Find the task to get eventId and comments
+      const taskToDelete = await Task.findById(taskId);
 
-        if (!taskToDelete) {
-            return res.status(404).json({ message: "Task not found" });
-        }
+      if (!taskToDelete) {
+        return res.status(404).json({ message: "Task not found" });
+      }
 
-        // Step 2: Delete associated comments
-        if (taskToDelete.comments && taskToDelete.comments.length > 0) {
-            await Comment.deleteMany({ _id: { $in: taskToDelete.comments } });
-        }
+      const event = await Event.findById(taskToDelete.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Associated event not found" });
+      }
 
-        // Step 3: Delete the task (subtasks will be removed as they're embedded)
-        await Task.findByIdAndDelete(taskId);
+      // Step 2: Delete associated comments
+      if (taskToDelete.comments && taskToDelete.comments.length > 0) {
+        await Comment.deleteMany({ _id: { $in: taskToDelete.comments } });
+      }
 
-        // Step 4: Remove the task reference from the associated event
-        await Event.findByIdAndUpdate(
-            taskToDelete.eventId,
-            {
-                $pull: {
-                    tasks: { taskId: taskToDelete._id }
-                }
-            },
-            { new: true }
-        );
+      // Step 3: Delete the task (subtasks will be removed as they're embedded)
+      await Task.findByIdAndDelete(taskId);
 
-        res.status(200).json({ message: "Task and related data deleted successfully" });
+      // Step 4: Remove the task reference from the associated event
+      await Event.findByIdAndUpdate(
+        taskToDelete.eventId,
+        {
+          $pull: {
+            tasks: { taskId: taskToDelete._id },
+          },
+        },
+        { new: true },
+      );
+
+      // Send notifications to admins, client, and assignees about the deletion
+    //   const clientId = event.clientId?.toString();
+    //   const assigneeIds = taskToDelete.assignees?.map(id => id.toString()) || [];
+    //   const adminUsers = await User.find({ role: 'admin' }, '_id');
+    //   const adminIds = adminUsers.map(admin => admin._id.toString());
+    //   const recipients = [...new Set([...adminIds, clientId, ...assigneeIds].filter(Boolean))];
+    //   const senderId = req.user?.id;
+
+    //   if (recipients.length > 0) {
+    //     await sendNotification({
+    //       recipients,
+    //       type: "task",
+    //       message: `Task "${taskToDelete.taskName}" has been deleted from event "${event.eventName}"`,
+    //       sender: senderId,
+    //     });
+    //   }
+
+      // Step 5: Recalculate event progress after task removal
+    //   await calculateAndUpdateEventProgress(taskToDelete.eventId);
+
+      res
+        .status(200)
+        .json({ message: "Task and related data deleted successfully" });
     } catch (error) {
         console.error("Error deleting task:", error);
         res.status(500).json({ message: "Something went wrong", error: error.message });
