@@ -641,21 +641,36 @@ const updateStatus = async (req, res) => {
 
 const getEventsDropdown = async (req, res) => {
   try {
-    const { clientId } = req.query;
+    const { clientId, selectedEventId, filterByStatus } = req.query;
 
-    const query = {
-      status: { $in: ["Approved", "In Progress"] },
+    const baseQuery = {}
+
+    if(filterByStatus === "active") {
+      baseQuery.status = {$in: ["Approved", "In Progress"]}
     };
 
     if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
       query.clientId = new mongoose.Types.ObjectId(clientId);
     }
 
-    const events = await Event.find(query, {
+    let events = await Event.find(baseQuery, {
       eventName: 1,
       startDate: 1,
       endDate: 1,
     });
+
+    if(selectedEventId && mongoose.Types.ObjectId.isValid(selectedEventId) &&
+      !events.some((e) => e._id.toString() === selectedEventId)){
+     const selectedEvent = await Event.findById(selectedEventId, {
+      eventName: 1,
+      startDate: 1,
+      endDate: 1
+      });
+
+      if(selectedEvent){
+        events.unshift(selectedEvent)
+      }
+    }
 
     res.status(200).json({
       message: "Events retrieved successfully",
