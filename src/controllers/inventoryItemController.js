@@ -89,11 +89,15 @@ const getAllInventoryItems = async (req, res) => {
 const getAllDropdown = async (req, res) => {
     try {
         const dropdownItems = await InventoryItem.find(
-            //To exclude single-use items with 0 quantity, you can use the following filter:
-            // { $or: [{ remainingQuantity: { $gt: 0 } }, { totalQuantity: { $gt: 0 } }] },
-            {},
-            'itemName _id remainingQuantity totalQuantity isSingleUse price' 
-        ).sort({ itemName: 1 }); 
+            {
+                $or: [
+                    { $and: [{ isSingleUse: true }, { remainingQuantity: { $gt: 0 } }] },
+                    { $and: [{ isLeased: true }, { totalQuantity: { $gt: 0 } }] },
+                    { $and: [{ isSingleUse: false }, { isLeased: false }, { totalQuantity: { $gt: 0 } }] }
+                ]
+            },
+            'itemName _id remainingQuantity totalQuantity isSingleUse price'
+        ).sort({ itemName: 1 });
 
         const formattedItems = dropdownItems.map(item => ({
             itemId: item._id,
@@ -415,16 +419,6 @@ const getAllReservations = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
-
-//get all dropdown exclude single use items with 0 quantity, put inside the line 91 bracket
-// {
-//     $or: [
-//         { remainingQuantity: { $gt: 0 } },
-//         {
-//             isSingleUse: false
-//         }
-//     ]
-// }
   
 
 
