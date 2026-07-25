@@ -19,6 +19,52 @@ const canCommentOnTask = (userId, userRole, task, clientId) => {
     return false;
 };
 
+const getCommentRecipients = ({ senderId, senderRole, clientId, assigneeIds = [], parentCommentCreatedBy = null, includeParentComment = false }) => {
+    const normalizedSenderId = senderId ? String(senderId) : null;
+    const normalizedClientId = clientId ? String(clientId) : null;
+    const normalizedAssignees = (assigneeIds || []).map((id) => String(id)).filter(Boolean);
+    const recipients = new Set();
+
+    const isAdminOrManager = senderRole === 'admin' || senderRole === 'manager';
+    const isClient = senderRole === 'client';
+    const isAssignedTeamMember = senderRole === 'team-member' && normalizedAssignees.includes(normalizedSenderId);
+
+    if (isAdminOrManager) {
+        if (normalizedClientId && normalizedClientId !== normalizedSenderId) {
+            recipients.add(normalizedClientId);
+        }
+
+        normalizedAssignees.forEach((assigneeId) => {
+            if (assigneeId !== normalizedSenderId) recipients.add(assigneeId);
+        });
+    } else if (isClient) {
+        normalizedAssignees.forEach((assigneeId) => {
+            if (assigneeId !== normalizedSenderId) recipients.add(assigneeId);
+        });
+    } else if (isAssignedTeamMember) {
+        if (normalizedClientId && normalizedClientId !== normalizedSenderId) {
+            recipients.add(normalizedClientId);
+        }
+    } else {
+        if (normalizedClientId && normalizedClientId !== normalizedSenderId) {
+            recipients.add(normalizedClientId);
+        }
+
+        normalizedAssignees.forEach((assigneeId) => {
+            if (assigneeId !== normalizedSenderId) recipients.add(assigneeId);
+        });
+    }
+
+    if (includeParentComment && parentCommentCreatedBy) {
+        const normalizedParentCommentCreator = String(parentCommentCreatedBy);
+        if (normalizedParentCommentCreator && normalizedParentCommentCreator !== normalizedSenderId) {
+            recipients.add(normalizedParentCommentCreator);
+        }
+    }
+
+    return [...recipients];
+};
+
 // Export this if used in your route
 const uploadCommentImages = upload.array('images');
 
@@ -59,13 +105,12 @@ const createComment = async (req, res) => {
         const savedComment = await newComment.save();
 
         const assigneeIds = parentTask.assignees?.map((a) => String(a)) || [];
-        const isClient = userRole === 'client' && String(userId) === clientId;
-
-        const recipients = isClient
-            ? assigneeIds.filter((id) => id !== String(userId))
-            : clientId && clientId !== String(userId)
-                ? [clientId]
-                : [];
+        const recipients = getCommentRecipients({
+            senderId: userId,
+            senderRole: userRole,
+            clientId,
+            assigneeIds,
+        });
 
         if (recipients.length > 0) {
             await sendNotification({
@@ -187,12 +232,24 @@ const addReplyToComment = async (req, res) => {
 
         const savedReply = await reply.save();
 
-        await sendNotification({
-            recipients: [parentComment.createdBy],
-            type: 'comment',
-            message: `New reply on your task ${taskName}.`,
-            sender: userId
+        const assigneeIds = task.assignees?.map((a) => String(a)) || [];
+        const recipients = getCommentRecipients({
+            senderId: userId,
+            senderRole: userRole,
+            clientId,
+            assigneeIds,
+            parentCommentCreatedBy: parentComment.createdBy,
+            includeParentComment: true,
         });
+
+        if (recipients.length > 0) {
+            await sendNotification({
+                recipients: [...new Set(recipients)],
+                type: 'comment',
+                message: `New reply on your task ${taskName}.`,
+                sender: userId
+            });
+        }
 
         res.status(201).json({
             message: "Reply added successfully",
