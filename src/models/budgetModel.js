@@ -58,6 +58,10 @@ const budgetSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    finalAmount: {
+        type: Number,
+        required: true,
+    },
     remarks: {
         type: String,
         default: '',

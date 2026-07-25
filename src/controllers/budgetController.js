@@ -5,9 +5,23 @@ const mongoose = require('mongoose');
 const { Types } = mongoose;
 const { sendNotification } = require('./notificationController');
 
+const calculateFinalAmount = (totalAmount, discount, providedFinalAmount) => {
+    const parsedTotalAmount = Number(totalAmount || 0);
+    const parsedDiscount = Number(discount || 0);
+    const discountAmount = (parsedTotalAmount * parsedDiscount) / 100;
+
+    return providedFinalAmount !== undefined && providedFinalAmount !== null
+        ? Number(providedFinalAmount)
+        : Math.max(parsedTotalAmount - discountAmount, 0);
+};
+
 const createBudget = async (req, res) => {
     try {
-        const { eventId, clientId, isApproved, expenses, inventoryItems, totalAmount, discount, remarks, createdBy } = req.body;
+        const { eventId, clientId, isApproved, expenses, inventoryItems, totalAmount, discount = 0, finalAmount, remarks, createdBy } = req.body;
+
+        const parsedTotalAmount = Number(totalAmount || 0);
+        const parsedDiscount = Number(discount || 0);
+        const computedFinalAmount = calculateFinalAmount(parsedTotalAmount, parsedDiscount, finalAmount);
 
         const newBudget = new Budget({
             eventId,
@@ -15,8 +29,9 @@ const createBudget = async (req, res) => {
             isApproved,
             expenses,
             inventoryItems,
-            totalAmount,
-            discount,
+            totalAmount: parsedTotalAmount,
+            discount: parsedDiscount,
+            finalAmount: computedFinalAmount,
             remarks,
             createdBy
         });
@@ -286,6 +301,33 @@ const updateBudget = async (req, res) => {
             }
         }
 
+        const existingBudget = await Budget.findById(id);
+        if (!existingBudget) {
+            return res.status(404).json({ message: "Budget not found" });
+        }
+
+        const updateData = { ...updates };
+
+        if (updates.totalAmount !== undefined || updates.discount !== undefined) {
+            const nextTotalAmount = updates.totalAmount !== undefined
+                ? Number(updates.totalAmount)
+                : Number(existingBudget.totalAmount || 0);
+            const nextDiscount = updates.discount !== undefined
+                ? Number(updates.discount)
+                : Number(existingBudget.discount || 0);
+
+            updateData.totalAmount = nextTotalAmount;
+            updateData.discount = nextDiscount;
+
+            if (updates.finalAmount === undefined) {
+                updateData.finalAmount = calculateFinalAmount(nextTotalAmount, nextDiscount, undefined);
+            }
+        }
+
+        if (updates.finalAmount !== undefined && updates.finalAmount !== null) {
+            updateData.finalAmount = Number(updates.finalAmount);
+        }
+
         // Prevent editing budgets that are already approved.
         // const existingBudget = await Budget.findById(id);
 
@@ -324,7 +366,7 @@ const updateBudget = async (req, res) => {
         //     }
         // }
 
-        const updatedBudget = await Budget.findByIdAndUpdate(id, updates, {
+        const updatedBudget = await Budget.findByIdAndUpdate(id, updateData, {
             new: true,
         });
 
