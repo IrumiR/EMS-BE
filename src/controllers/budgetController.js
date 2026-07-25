@@ -21,15 +21,16 @@ const createBudget = async (req, res) => {
             createdBy
         });
 
-        const existingBudget = await Budget.findOne({ eventId });
-        if (existingBudget) {
-            const event = await Event.findById(eventId);
-            if (event) {
-                return res.status(400).json({ message: `Budget for ${event.eventName} already exists` });
-            } else {
-                return res.status(404).json({ message: "Event not found" });
-            }
-        }
+        //Validation to prevent creation of multiple budgets for the same event
+        // const existingBudget = await Budget.findOne({ eventId });
+        // if (existingBudget) {
+        //     const event = await Event.findById(eventId);
+        //     if (event) {
+        //         return res.status(400).json({ message: `Budget for ${event.eventName} already exists` });
+        //     } else {
+        //         return res.status(404).json({ message: "Event not found" });
+        //     }
+        // }
 
         // Add validation for damaged & single use items
         // if (Array.isArray(inventoryItems) && inventoryItems.length > 0) {
@@ -284,6 +285,17 @@ const updateBudget = async (req, res) => {
                 }
             }
         }
+
+        // Prevent editing budgets that are already approved.
+        // const existingBudget = await Budget.findById(id);
+
+        // if (!existingBudget) {
+        //     return res.status(404).json({ message: "Budget not found" });
+        // }
+
+        // if (existingBudget.isApproved === true) {
+        //     return res.status(400).json({ message: "Approved budgets can't be edited" });
+        // }
 
         // Add validation for damaged & single use items
         // if (Array.isArray(inventoryItems) && inventoryItems.length > 0) {
