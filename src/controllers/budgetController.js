@@ -353,11 +353,44 @@ const deleteBudget = async (req, res) => {
             return res.status(400).json({ message: "Invalid budget ID" });
         }
 
+        //Validation to prevent deletion of approved budgets
+        // const budget = await Budget.findById(id);
+
+        // if (!budget) {
+        //     return res.status(404).json({ message: "Budget not found" });
+        // }
+
+        // const isApproved = budget.isApproved;
+
+        // if (isApproved === true) {
+        //     return res.status(400).json({ message: "Budgets with status 'Approved' can't be deleted" });
+        // }
+
         const deletedBudget = await Budget.findByIdAndDelete(id);
 
         if (!deletedBudget) {
             return res.status(404).json({ message: "Budget not found" });
         }
+
+        const event = await Event.findById(deletedBudget.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const deleterId = req.user?.id;
+        const deleter = deleterId ? await User.findById(deleterId) : null;
+        const clientId = event.clientId;
+        const adminUsers = await User.find({ role: 'admin' }, '_id');
+        const adminIds = adminUsers.map(admin => admin._id.toString());
+
+        const recipients = [...new Set([...(clientId ? [clientId.toString()] : []), ...adminIds])];
+
+        await sendNotification({
+            recipients,
+            type: "budget",
+            message: `Budget has been deleted for event ${event.eventName}.`,
+            sender: deleter?._id || deleterId,
+        });
 
         res.status(200).json({ message: "Budget deleted successfully" });
     } catch (error) {
