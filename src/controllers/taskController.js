@@ -5,6 +5,22 @@ const Comment = require('../models/commentModel');
 const mongoose = require('mongoose');
 const { sendNotification } = require('./notificationController');
 
+const validateTaskAssigneesAgainstEvent = (taskAssignees, eventAssignees) => {
+    if (!taskAssignees || !Array.isArray(taskAssignees) || taskAssignees.length === 0) {
+        return { valid: true };
+    }
+
+    const eventAssigneeIds = eventAssignees.map((id) => id.toString());
+    const invalidAssignees = taskAssignees
+        .map((assignee) => assignee.toString())
+        .filter((assigneeId) => !eventAssigneeIds.includes(assigneeId));
+
+    return {
+        valid: invalidAssignees.length === 0,
+        invalidAssigneeIds: invalidAssignees,
+    };
+};
+
 const createTask = async (req, res) => {
     try {
         const {
@@ -48,6 +64,15 @@ const createTask = async (req, res) => {
         if (!event) {
             return res.status(404).json({ message: "Associated event not found" });
         }
+
+        //Task assignee validation
+        // const taskAssigneeValidation = validateTaskAssigneesAgainstEvent(assignees, event.assignees);
+        // if (!taskAssigneeValidation.valid) {
+        //     return res.status(400).json({
+        //         message: "Task assignees must be part of the event's assignees",
+        //         invalidAssigneeIds: taskAssigneeValidation.invalidAssigneeIds,
+        //     });
+        // }
 
         //Task creation validation
         // if (event.status !== "In Progress") {
@@ -315,6 +340,22 @@ const updateTask = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        const event = await Event.findById(originalTask.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        // Task assignee validation
+        // if (req.body.assignees) {
+        //     const assigneeValidation = validateTaskAssigneesAgainstEvent(req.body.assignees, event.assignees);
+        //     if (!assigneeValidation.valid) {
+        //         return res.status(400).json({
+        //             message: "Task assignees must be part of the event's assignees",
+        //             invalidAssigneeIds: assigneeValidation.invalidAssigneeIds,
+        //         });
+        //     }
+        // }
+
         //validation for updating unassigned tasks
     //     const userId = req.user?.id;
     //     const userRole = req.user?.role;
@@ -363,11 +404,6 @@ const updateTask = async (req, res) => {
         );
 
         await calculateAndUpdateEventProgress(updatedTask.eventId);
-
-        const event = await Event.findById(updatedTask.eventId);
-        if (!event) {
-            return res.status(404).json({ message: "Associated event not found" });
-        }
 
         const sender = await User.findById(updatedTask.createdBy);
         const clientId = event.clientId?.toString();
