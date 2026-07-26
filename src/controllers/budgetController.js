@@ -29,6 +29,41 @@ const validateDiscount = (discount) => {
     return { valid: true, parsedDiscount };
 };
 
+const validateEventInventoryItems = async (eventId, inventoryItems = []) => {
+    if (!eventId) {
+        return { valid: true };
+    }
+
+    if (!Array.isArray(inventoryItems) || inventoryItems.length === 0) {
+        return { valid: true };
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+        return { valid: false, status: 404, message: "Associated event not found" };
+    }
+
+    const allowedItemIds = new Set(
+        (event.inventoryItems || []).map((item) => item?.toString())
+    );
+
+    const invalidItems = inventoryItems.filter((item) => {
+        const itemId = item?.itemId || item?._id || item?.id;
+        return itemId && !allowedItemIds.has(itemId.toString());
+    });
+
+    if (invalidItems.length > 0) {
+        return {
+            valid: false,
+            status: 400,
+            message: "Only inventory items assigned to the event can be added to this budget",
+            invalidItems,
+        };
+    }
+
+    return { valid: true };
+};
+
 const createBudget = async (req, res) => {
     try {
         const { eventId, clientId, isApproved, expenses, inventoryItems, totalAmount, discount = 0, finalAmount, remarks, createdBy } = req.body;
@@ -42,6 +77,17 @@ const createBudget = async (req, res) => {
         const parsedDiscount = Number(discount || 0);
         // const parsedDiscount = discountValidation.parsedDiscount;
         const computedFinalAmount = calculateFinalAmount(parsedTotalAmount, parsedDiscount, finalAmount);
+
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        // Validation to ensure that only inventory items assigned to the event can be added to the budget
+        // const inventoryValidation = await validateEventInventoryItems(eventId, inventoryItems);
+        // if (!inventoryValidation.valid) {
+        //     return res.status(inventoryValidation.status).json({ message: inventoryValidation.message });
+        // }
 
         const newBudget = new Budget({
             eventId,
@@ -95,11 +141,6 @@ const createBudget = async (req, res) => {
         // }
 
         const savedBudget = await newBudget.save();
-
-        const event = await Event.findById(eventId);
-        if (!event) {
-            return res.status(404).json({ message: "Associated event not found" });
-        }
 
         await sendNotification({
             recipients: [clientId],
@@ -326,6 +367,22 @@ const updateBudget = async (req, res) => {
             return res.status(404).json({ message: "Budget not found" });
         }
 
+        const event = await Event.findById(updates.eventId || existingBudget.eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        // Validation to ensure that only inventory items assigned to the event can be added to the budget
+        // if (updates.inventoryItems !== undefined) {
+        //     const inventoryValidation = await validateEventInventoryItems(
+        //         updates.eventId || existingBudget.eventId,
+        //         updates.inventoryItems
+        //     );
+        //     if (!inventoryValidation.valid) {
+        //         return res.status(inventoryValidation.status).json({ message: inventoryValidation.message });
+        //     }
+        // }
+
         const updateData = { ...updates };
 
         if (updates.totalAmount !== undefined || updates.discount !== undefined) {
@@ -402,11 +459,6 @@ const updateBudget = async (req, res) => {
 
         if (!updatedBudget) {
             return res.status(404).json({ message: "Budget not found" });
-        }
-
-        const event = await Event.findById(updatedBudget.eventId);
-        if (!event) {
-            return res.status(404).json({ message: "Associated event not found" });
         }
 
         const sender = await User.findById(updatedBudget.createdBy);
