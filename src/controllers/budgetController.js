@@ -15,12 +15,32 @@ const calculateFinalAmount = (totalAmount, discount, providedFinalAmount) => {
         : Math.max(parsedTotalAmount - discountAmount, 0);
 };
 
+const validateDiscount = (discount) => {
+    const parsedDiscount = Number(discount ?? 0);
+
+    if (!Number.isFinite(parsedDiscount)) {
+        return { valid: false, message: "Discount must be a valid number" };
+    }
+
+    if (parsedDiscount < 0 || parsedDiscount > 5) {
+        return { valid: false, message: "Discount cannot be negative or exceed 5%" };
+    }
+
+    return { valid: true, parsedDiscount };
+};
+
 const createBudget = async (req, res) => {
     try {
         const { eventId, clientId, isApproved, expenses, inventoryItems, totalAmount, discount = 0, finalAmount, remarks, createdBy } = req.body;
 
+        // const discountValidation = validateDiscount(discount);
+        // if (!discountValidation.valid) {
+        //     return res.status(400).json({ message: discountValidation.message });
+        // }
+
         const parsedTotalAmount = Number(totalAmount || 0);
         const parsedDiscount = Number(discount || 0);
+        // const parsedDiscount = discountValidation.parsedDiscount;
         const computedFinalAmount = calculateFinalAmount(parsedTotalAmount, parsedDiscount, finalAmount);
 
         const newBudget = new Budget({
@@ -312,12 +332,22 @@ const updateBudget = async (req, res) => {
             const nextTotalAmount = updates.totalAmount !== undefined
                 ? Number(updates.totalAmount)
                 : Number(existingBudget.totalAmount || 0);
-            const nextDiscount = updates.discount !== undefined
-                ? Number(updates.discount)
-                : Number(existingBudget.discount || 0);
+
+            let nextDiscount = updates.discount !== undefined
+                ? updates.discount
+                : existingBudget.discount;
+
+            // if (updates.discount !== undefined) {
+            //     const discountValidation = validateDiscount(updates.discount);
+            //     if (!discountValidation.valid) {
+            //         return res.status(400).json({ message: discountValidation.message });
+            //     }
+            //     nextDiscount = discountValidation.parsedDiscount;
+            // }
 
             updateData.totalAmount = nextTotalAmount;
             updateData.discount = nextDiscount;
+            // updateData.discount = Number(nextDiscount);
 
             if (updates.finalAmount === undefined) {
                 updateData.finalAmount = calculateFinalAmount(nextTotalAmount, nextDiscount, undefined);
