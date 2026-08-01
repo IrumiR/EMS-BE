@@ -274,24 +274,24 @@ const createReservation = async (req, res) => {
         // }
 
         //for reserving item within the event start date and end date
-        // const event = await Event.findById(eventId);
-        // if (!event) {
-        //     return res.status(404).json({ message: "Event not found" });
-        // }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
+        }
 
-        // const reservationDate = new Date(date);
+        const reservationDate = new Date(date);
 
-        // const eventStart = new Date(event.startDate);
-        // eventStart.setHours(0,0,0,0);
+        const eventStart = new Date(event.startDate);
+        eventStart.setHours(0,0,0,0);
 
-        // const eventEnd = new Date(event.endDate);
-        // eventEnd.setHours(23,59,59,999);
+        const eventEnd = new Date(event.endDate);
+        eventEnd.setHours(23,59,59,999);
 
-        // if(reservationDate < eventStart || reservationDate > eventEnd){
-        //  return res.status(400).json({
-        //     message: "Reservation date must be within selected event dates"
-        //  })
-        // }
+        if(reservationDate < eventStart || reservationDate > eventEnd){
+         return res.status(400).json({
+            message: "Reservation date must be within selected event dates"
+         })
+        }
 
         // Find total reserved quantity for the selected date
         const existingReservations = item.reservations?.filter(r =>
@@ -336,6 +336,26 @@ const ReserveSingleUseItems = async (req, res) => {
         const item = await InventoryItem.findById(itemId);
         if (!item) {
             return res.status(404).json({ message: "Inventory item not found" });
+        }
+
+        //for reserving item within the event start date and end date
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        const reservationDate = new Date(date);
+
+        const eventStart = new Date(event.startDate);
+        eventStart.setHours(0,0,0,0);
+
+        const eventEnd = new Date(event.endDate);
+        eventEnd.setHours(23,59,59,999);
+
+        if(reservationDate < eventStart || reservationDate > eventEnd){
+         return res.status(400).json({
+            message: "Reservation date must be within selected event dates"
+         })
         }
 
         if (!item.isSingleUse) {
