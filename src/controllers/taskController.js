@@ -5,6 +5,45 @@ const Comment = require('../models/commentModel');
 const mongoose = require('mongoose');
 const { sendNotification } = require('./notificationController');
 
+const normalizeDateValue = (value) => {
+    if (!value) return null;
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const validateTaskDatesAgainstEvent = (taskStartDate, taskEndDate, eventStartDate, eventEndDate) => {
+    const normalizedTaskStart = normalizeDateValue(taskStartDate);
+    const normalizedTaskEnd = normalizeDateValue(taskEndDate);
+    const normalizedEventStart = normalizeDateValue(eventStartDate);
+    const normalizedEventEnd = normalizeDateValue(eventEndDate);
+
+    if (!normalizedTaskStart || !normalizedTaskEnd || !normalizedEventStart || !normalizedEventEnd) {
+        return { valid: true };
+    }
+
+    if (normalizedTaskStart > normalizedTaskEnd) {
+        return {
+            valid: false,
+            message: "Task start date cannot be after task end date.",
+        };
+    }
+
+    if (normalizedTaskStart < normalizedEventStart || normalizedTaskEnd > normalizedEventEnd) {
+        return {
+            valid: false,
+            message: "Task start date and end date must be within the event's date range.",
+        };
+    }
+
+    return { valid: true };
+};
+
 const validateTaskAssigneesAgainstEvent = (taskAssignees, eventAssignees) => {
     if (!taskAssignees || !Array.isArray(taskAssignees) || taskAssignees.length === 0) {
         return { valid: true };
@@ -63,6 +102,11 @@ const createTask = async (req, res) => {
         const event = await Event.findById(eventId);
         if (!event) {
             return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const taskDateValidation = validateTaskDatesAgainstEvent(startDate, endDate, event.startDate, event.endDate);
+        if (!taskDateValidation.valid) {
+            return res.status(400).json({ message: taskDateValidation.message });
         }
 
         //Task assignee validation
@@ -343,6 +387,19 @@ const updateTask = async (req, res) => {
         const event = await Event.findById(originalTask.eventId);
         if (!event) {
             return res.status(404).json({ message: "Associated event not found" });
+        }
+
+        const incomingStartDate = req.body.startDate !== undefined ? req.body.startDate : originalTask.startDate;
+        const incomingEndDate = req.body.endDate !== undefined ? req.body.endDate : originalTask.endDate;
+        const taskDateValidation = validateTaskDatesAgainstEvent(
+            incomingStartDate,
+            incomingEndDate,
+            event.startDate,
+            event.endDate
+        );
+
+        if (!taskDateValidation.valid) {
+            return res.status(400).json({ message: taskDateValidation.message });
         }
 
         // Task assignee validation
