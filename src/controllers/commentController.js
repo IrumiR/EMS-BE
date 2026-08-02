@@ -264,12 +264,18 @@ const addReplyToComment = async (req, res) => {
 const deleteComment = async (req, res) => {
     try {
         const { commentId } = req.params;
+        const userId = req.user?.id;
 
-        const deletedComment = await Comment.findByIdAndDelete(commentId);
-
-        if (!deletedComment) {
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
             return res.status(404).json({ message: "Comment not found" });
         }
+
+        if (String(comment.createdBy) !== String(userId)) {
+            return res.status(403).json({ message: "You`re not authorized to delete this comment" });
+        }
+
+        const deletedComment = await Comment.findByIdAndDelete(commentId);
 
         await Task.findOneAndUpdate(
             { comments: commentId },
