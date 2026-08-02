@@ -104,6 +104,12 @@ const getAllEvents = async (req, res) => {
       query.$and.push({ clientId: userId });
     }
 
+    // If the requester is a team member, only return events they're assigned to
+    // if (userRole === 'team-member') {
+    //   query.$and = query.$and || [];
+    //   query.$and.push({ assignees: { $in: [new Types.ObjectId(userId)] } });
+    // }
+
     if (status) {
       query.$and = query.$and || [];
       query.$and.push({ status });
@@ -244,6 +250,15 @@ const getEventCountsByStatus = async (req, res) => {
     const matchStage = userRole === 'client'
       ? { $match: { clientId: new Types.ObjectId(userId) } }
       : { $match: {} };
+
+    // Build match stage: clients see their events, team-members see events
+    // they're assigned to, others (admin/manager) see all events
+    // let matchStage = { $match: {} };
+    // if (userRole === 'client') {
+    //   matchStage = { $match: { clientId: new Types.ObjectId(userId) } };
+    // } else if (userRole === 'team-member') {
+    //   matchStage = { $match: { assignees: { $in: [new Types.ObjectId(userId)] } } };
+    // }
 
     const statusCounts = await Event.aggregate([
       matchStage,
