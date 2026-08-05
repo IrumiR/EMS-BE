@@ -60,6 +60,35 @@ const validateTaskAssigneesAgainstEvent = (taskAssignees, eventAssignees) => {
     };
 };
 
+const validateTaskAssigneesNotManagers = async (taskAssignees) => {
+    if (!taskAssignees || !Array.isArray(taskAssignees) || taskAssignees.length === 0) {
+        return { valid: true };
+    }
+
+    const assigneeIds = taskAssignees
+        .filter((assignee) => mongoose.Types.ObjectId.isValid(assignee))
+        .map((assignee) => assignee.toString());
+
+    if (assigneeIds.length === 0) {
+        return { valid: true };
+    }
+
+    const managerUsers = await User.find({
+        _id: { $in: assigneeIds },
+        role: "manager",
+    }).select("_id");
+
+    if (managerUsers.length > 0) {
+        return {
+            valid: false,
+            invalidAssigneeIds: managerUsers.map((manager) => manager._id.toString()),
+            message: "Managers cannot be assigned to tasks.",
+        };
+    }
+
+    return { valid: true };
+};
+
 const createTask = async (req, res) => {
     try {
         const {
@@ -108,6 +137,15 @@ const createTask = async (req, res) => {
         if (!taskDateValidation.valid) {
             return res.status(400).json({ message: taskDateValidation.message });
         }
+
+        // Manager validation
+        // const managerValidation = await validateTaskAssigneesNotManagers(assignees);
+        // if (!managerValidation.valid) {
+        //     return res.status(400).json({
+        //         message: managerValidation.message,
+        //         invalidAssigneeIds: managerValidation.invalidAssigneeIds,
+        //     });
+        // }
 
         //Task assignee validation
         // const taskAssigneeValidation = validateTaskAssigneesAgainstEvent(assignees, event.assignees);
@@ -407,6 +445,17 @@ const updateTask = async (req, res) => {
             return res.status(400).json({ message: taskDateValidation.message });
         }
 
+        //Manager validation
+        // if (req.body.assignees) {
+        //     const managerValidation = await validateTaskAssigneesNotManagers(req.body.assignees);
+        //     if (!managerValidation.valid) {
+        //         return res.status(400).json({
+        //             message: managerValidation.message,
+        //             invalidAssigneeIds: managerValidation.invalidAssigneeIds,
+        //         });
+        //     }
+        // }
+
         // Task assignee validation
         // if (req.body.assignees) {
         //     const assigneeValidation = validateTaskAssigneesAgainstEvent(req.body.assignees, event.assignees);
@@ -418,7 +467,7 @@ const updateTask = async (req, res) => {
         //     }
         // }
 
-        //validation for updating unassigned tasks
+    //validation for updating unassigned tasks
     //     const userId = req.user?.id;
     //     const userRole = req.user?.role;
 
