@@ -321,19 +321,24 @@ const getAllTasksByEventId = async (req, res) => {
 const getTaskCountsByStatus = async (req, res) => {
     try {
         const { userId } = req.query;
+        const currentUserRole = req.user?.role;
+        const currentUserId = req.user?.id;
 
         const pipeline = [];
+        const shouldFilterByAssignee = currentUserRole !== "admin" && (userId || currentUserId);
 
-        if (userId) {
-            // Convert userId to ObjectId
-            const objectUserId = new mongoose.Types.ObjectId(userId);
+        if (shouldFilterByAssignee) {
+            const targetUserId = userId || currentUserId;
 
-            // Match any task where assignees contains this user
-            pipeline.push({
-                $match: {
-                    assignees: objectUserId,
-                },
-            });
+            if (targetUserId && mongoose.Types.ObjectId.isValid(targetUserId)) {
+                const objectUserId = new mongoose.Types.ObjectId(targetUserId);
+
+                pipeline.push({
+                    $match: {
+                        assignees: objectUserId,
+                    },
+                });
+            }
         }
 
         // Group and count by status
