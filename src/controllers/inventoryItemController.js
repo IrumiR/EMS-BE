@@ -387,7 +387,6 @@ const ReserveSingleUseItems = async (req, res) => {
     }
 };
 
-
 const getAllReservations = async (req, res) => {
     try {
         const { dateRange } = req.query;
@@ -439,7 +438,102 @@ const getAllReservations = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
+
+
+
+const getReservationsList = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            event,
+            eventId,
+            reserveType,
+            itemType,
+            dateRange
+        } = req.query;
+
+        const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+        const limitNumber = Math.max(1, parseInt(limit, 10) || 10);
+
+        const itemQuery = { "reservations.0": { $exists: true } };
+
+        if (itemType && itemType !== 'all') {
+            itemQuery.isExternal = itemType === 'external';
+        }
+
+        if (reserveType && reserveType !== 'all') {
+            if (reserveType === 'single-use') {
+                itemQuery.isSingleUse = true;
+            } else if (reserveType === 'rental') {
+                itemQuery.isSingleUse = false;
+            }
+        }
+
+        const itemsWithReservations = await InventoryItem.find(itemQuery)
+            .populate('reservations.eventId', 'eventName')
+            .lean();
+
+        let reservations = itemsWithReservations.flatMap(item =>
+            item.reservations.map(reservation => ({
+                itemId: item._id,
+                itemName: item.itemName,
+                date: reservation.date,
+                reservedQuantity: reservation.reservedQuantity,
+                event: reservation.eventId ? {
+                    _id: reservation.eventId._id,
+                    name: reservation.eventId.eventName
+                } : null,
+                reserveType: item.isSingleUse ? 'single-use' : 'rental',
+                itemType: item.isExternal ? 'external' : 'internal',
+                createdAt: reservation.createdAt
+            }))
+        );
+
+        const eventFilterValue = event || eventId;
+        if (eventFilterValue && eventFilterValue !== 'all') {
+            const normalizedEventFilter = String(eventFilterValue).toLowerCase();
+            reservations = reservations.filter(reservation => {
+                const eventName = reservation.event?.name?.toLowerCase() || '';
+                const eventIdValue = reservation.event?._id ? String(reservation.event._id) : '';
+                return eventName.includes(normalizedEventFilter) || eventIdValue === normalizedEventFilter;
+            });
+        }
+
+        if (dateRange === 'pastDay') {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 1);
+            reservations = reservations.filter(reservation => reservation.createdAt && new Date(reservation.createdAt) >= startDate);
+        } else if (dateRange === 'pastWeek') {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7);
+            reservations = reservations.filter(reservation => reservation.createdAt && new Date(reservation.createdAt) >= startDate);
+        } else if (dateRange === 'pastMonth') {
+            const startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 1);
+            reservations = reservations.filter(reservation => reservation.createdAt && new Date(reservation.createdAt) >= startDate);
+        }
+
+        const totalCount = reservations.length;
+        const startIndex = (pageNumber - 1) * limitNumber;
+        const paginatedReservations = reservations.slice(startIndex, startIndex + limitNumber);
+
+        res.status(200).json({
+            message: 'Reservations retrieved successfully',
+            reservations: paginatedReservations,
+            pagination: {
+                total: totalCount,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages: Math.ceil(totalCount / limitNumber)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching reservation list:', error);
+        res.status(500).json({ message: 'Something went wrong', error: error.message });
+    }
+};
   
 
 
-module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, ReserveSingleUseItems, uploadInventoryImage, getAllReservations };
+module.exports = { createInventoryItem, getAllInventoryItems, getAllDropdown, getInventoryItemCount, getInventoryItemById, getInventoryReportData, updateInventoryItem, deleteInventoryItem, createReservation, ReserveSingleUseItems, uploadInventoryImage, getAllReservations, getReservationsList };
