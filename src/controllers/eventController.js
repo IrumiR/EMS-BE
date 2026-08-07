@@ -582,6 +582,18 @@ const deleteEvent = async (req, res) => {
       { $pull: { reservations: { eventId: eventId } } }
     );
 
+    // Send notifications about the deletion
+    // const { eventName, clientId, assignees, createdBy } = deletedEvent;
+    // const recipients = [...new Set([clientId, ...assignees])];
+    // const sender = await User.findById(req.user?.id || createdBy);
+
+    // await sendNotification({
+    //   recipients,
+    //   type: 'event',
+    //   message: `Event ${eventName} and related data has been deleted`,
+    //   sender
+    // });
+
     res.status(200).json({ message: "Event and related data deleted successfully" });
   } catch (error) {
     console.error("Error deleting event:", error);

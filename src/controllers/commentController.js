@@ -65,6 +65,25 @@ const getCommentRecipients = ({ senderId, senderRole, clientId, assigneeIds = []
     return [...recipients];
 };
 
+const buildDeletionRecipients = ({ userId, clientId, assignees = [] }) => {
+    const normalizedUserId = userId ? String(userId) : null;
+    const normalizedClientId = clientId ? String(clientId) : null;
+    const normalizedAssignees = (assignees || []).map((id) => String(id)).filter(Boolean);
+    const recipients = new Set();
+
+    if (normalizedClientId && normalizedClientId !== normalizedUserId) {
+        recipients.add(normalizedClientId);
+    }
+
+    normalizedAssignees.forEach((assigneeId) => {
+        if (assigneeId !== normalizedUserId) {
+            recipients.add(assigneeId);
+        }
+    });
+
+    return [...recipients];
+};
+
 // Export this if used in your route
 const uploadCommentImages = upload.array('images');
 
@@ -283,6 +302,29 @@ const deleteComment = async (req, res) => {
             { new: true, useFindAndModify: false }
         );
 
+        const task = await Task.findById(comment.taskId);
+        let clientId = null;
+
+        if (task) {
+            const parentEvent = await Event.findById(task.eventId);
+            clientId = parentEvent?.clientId?.toString() || null;
+        }
+
+        const recipients = buildDeletionRecipients({
+            userId,
+            clientId,
+            assignees: task?.assignees || []
+        });
+
+        if (recipients.length > 0) {
+            await sendNotification({
+                recipients,
+                type: comment.parentCommentId ? 'reply' : 'comment',
+                message: `A ${comment.parentCommentId ? 'reply' : 'comment'} was deleted from task "${task?.taskName || 'the task'}".`,
+                sender: userId,
+            });
+        }
+
         res.status(200).json({
             message: "Comment deleted successfully",
             comment: deletedComment
@@ -298,5 +340,6 @@ module.exports = {
     getCommentsByTaskId,
     deleteComment,
     addReplyToComment,
-    uploadCommentImages
+    uploadCommentImages,
+    buildDeletionRecipients
 };
