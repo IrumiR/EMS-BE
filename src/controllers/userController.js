@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const Event = require("../models/eventModel");
+const Task = require("../models/taskModel");
 const bcrypt = require("bcryptjs");
 
 const getAllUsers = async (req, res) => {
@@ -199,6 +200,28 @@ const deactivateUser = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (isActive === false) {
+      let hasActiveAssignments = false;
+
+      if (user.role === "client") {
+        hasActiveAssignments = await Event.exists({ clientId: userId });
+      } else if (user.role === "team-member" || user.role === "manager") {
+        const [eventAssignment, taskAssignment] = await Promise.all([
+          Event.exists({ assignees: userId }),
+          Task.exists({ assignees: userId }),
+        ]);
+
+        hasActiveAssignments = Boolean(eventAssignment || taskAssignment);
+      }
+
+      if (hasActiveAssignments) {
+        return res.status(400).json({
+          message:
+            "This user cannot be deactivated because they are still assigned to existing events or tasks.",
+        });
+      }
     }
 
     user.isActive = isActive;
