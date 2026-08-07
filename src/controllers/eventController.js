@@ -544,6 +544,16 @@ const deleteEvent = async (req, res) => {
   try {
     const eventId = req.params.id;
 
+    //Only completed events can be deleted
+    // const event = await Event.findById(eventId);
+    // if (!event) {
+    //   return res.status(404).json({ message: "Event not found" });
+    // }
+
+    // if (event.status !== "Completed") {
+    //   return res.status(400).json({ message: "Events must be completed before deletion" });
+    // }
+
     // Find and delete the event
     const deletedEvent = await Event.findByIdAndDelete(eventId);
     if (!deletedEvent) {

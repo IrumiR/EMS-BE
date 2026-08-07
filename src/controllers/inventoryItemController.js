@@ -305,6 +305,11 @@ const createReservation = async (req, res) => {
 
         const availableQuantity = item.totalQuantity - totalReservedForDate;
 
+        // Check if there are enough available items
+        // if (availableQuantity <= 0) {
+        //     return res.status(400).json({ message: "This item is currently unavailable for reservation" });
+        // }
+
         if (reservedQuantity > availableQuantity) {
             return res.status(400).json({ message: `Only ${availableQuantity} item(s) available for the selected date` });
         }
@@ -363,6 +368,11 @@ const ReserveSingleUseItems = async (req, res) => {
         }
 
         const availableQuantity = item.remainingQuantity;
+
+        // Check if there are enough available items
+        //  if (availableQuantity <= 0) {
+        //     return res.status(400).json({ message: "This item is currently unavailable for reservation" });
+        // }
 
         if (reservedQuantity > availableQuantity) {
             return res.status(400).json({ message: `Only ${availableQuantity} item(s) are available` });
